@@ -94,7 +94,7 @@ export function Course() {
   }
 
   return (
-    <div className="max-w-360 mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
       <button
         onClick={() => navigate(-1)}

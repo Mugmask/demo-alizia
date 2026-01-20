@@ -102,7 +102,7 @@ export function DocumentSectionsList({
           {section.topics.length === 0 ? (
             <p className="body-2-regular text-secondary-foreground">No hay temas disponibles</p>
           ) : (
-            <div className="space-y-3 activity-card-bg backdrop-blur-sm py-5 px-4 rounded-2xl">
+            <div className="space-y-3 activity-card-bg backdrop-blur-sm p-3 rounded-2xl">
               {section.topics.map((topic) => (
                 <div key={topic.id} className="bg-[#FFFFFF4D] backdrop-blur-sm rounded-2xl transition-all">
                   <div className="p-4">

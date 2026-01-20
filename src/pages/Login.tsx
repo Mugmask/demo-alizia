@@ -94,7 +94,7 @@ export function Login() {
           <p className="body-1-regular text-muted-foreground text-center">Selecciona tu perfil para comenzar</p>
         </div>
 
-        <div className="w-full max-w-360">
+        <div className="w-full max-w-7xl">
           {/* Coordinators Section */}
           {isLoading ? (
             <div className="mb-10">

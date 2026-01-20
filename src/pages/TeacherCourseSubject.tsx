@@ -81,7 +81,7 @@ export function TeacherCourseSubject() {
   });
 
   return (
-    <div className="max-w-360 mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-8">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-4 mb-6 cursor-pointer transition-colors hover:text-gray-600"
