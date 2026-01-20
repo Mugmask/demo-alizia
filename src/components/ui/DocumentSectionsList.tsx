@@ -65,7 +65,7 @@ export function DocumentSectionsList({
             <Skeleton className="h-8 w-48" />
             <div className="space-y-3">
               {Array.from({ length: 2 }).map((_, topicIndex) => (
-                <Card key={topicIndex} className="bg-white/50 backdrop-blur-sm border-slate-200 rounded-2xl">
+                <Card key={topicIndex} className="bg-white/60 backdrop-blur-sm border-slate-200 rounded-2xl">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">

@@ -10,10 +10,22 @@ export interface Area {
   coordinator_id: number;
 }
 
+export interface ScheduleClass {
+  time: string;
+  subject: string;
+  shared_with?: string;
+}
+
 export interface Course {
   id: number;
   name: string;
-  schedule?: Record<string, any>;
+  schedule?: {
+    monday?: ScheduleClass[];
+    tuesday?: ScheduleClass[];
+    wednesday?: ScheduleClass[];
+    thursday?: ScheduleClass[];
+    friday?: ScheduleClass[];
+  };
 }
 
 export interface Subject {

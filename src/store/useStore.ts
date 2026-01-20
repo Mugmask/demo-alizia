@@ -104,8 +104,6 @@ interface AppState {
   getUserArea: () => Area | undefined;
 }
 
-const currentYear = new Date().getFullYear();
-
 export const useStore = create<AppState>((set, get) => ({
   users: [],
   currentUser: null,
@@ -125,8 +123,8 @@ export const useStore = create<AppState>((set, get) => ({
     areaId: null,
     nucleusIds: [],
     categoryIds: [],
-    startDate: `${currentYear}-03-01`,
-    endDate: `${currentYear}-12-15`,
+    startDate: '',
+    endDate: '',
     subjectsData: {},
     subjectCategories: {},
   },
@@ -183,8 +181,8 @@ export const useStore = create<AppState>((set, get) => ({
         areaId: null,
         nucleusIds: [],
         categoryIds: [],
-        startDate: `${currentYear}-03-01`,
-        endDate: `${currentYear}-12-15`,
+        startDate: '',
+        endDate: '',
         subjectsData: {},
         subjectCategories: {},
       },

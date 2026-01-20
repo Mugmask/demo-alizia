@@ -97,7 +97,7 @@ export function Course() {
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate('/')}
         className="flex items-center gap-4 mb-6 cursor-pointer transition-colors hover:text-gray-600"
       >
         <ChevronLeft className="text-[#10182B]" />

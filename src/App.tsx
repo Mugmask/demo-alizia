@@ -83,29 +83,36 @@ function App() {
       {!currentUser ? (
         <Login />
       ) : (
-        <MainLayout>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                userRole === 'coordinator' ? (
-                  <CoordinatorHome />
-                ) : userRole === 'teacher' ? (
-                  <TeacherHome />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route path="/curso/:id" element={<Course />} />
-            <Route path="/curso/:id/crear" element={<Wizard />} />
-            <Route path="/doc/:id" element={<Document />} />
-            <Route path="/teacher/cs/:id" element={<TeacherCourseSubject />} />
-            <Route path="/teacher/planificar/:csId/:classNumber" element={<TeacherPlanWizard />} />
-            <Route path="/teacher/plan/:id" element={<TeacherLessonPlan />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </MainLayout>
+        <Routes>
+          <Route path="/curso/:id/crear" element={<Wizard />} />
+          <Route path="/doc/:id" element={<Document />} />
+          <Route
+            path="*"
+            element={
+              <MainLayout>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      userRole === 'coordinator' ? (
+                        <CoordinatorHome />
+                      ) : userRole === 'teacher' ? (
+                        <TeacherHome />
+                      ) : (
+                        <Navigate to="/" replace />
+                      )
+                    }
+                  />
+                  <Route path="/curso/:id" element={<Course />} />
+                  <Route path="/teacher/cs/:id" element={<TeacherCourseSubject />} />
+                  <Route path="/teacher/planificar/:csId/:classNumber" element={<TeacherPlanWizard />} />
+                  <Route path="/teacher/plan/:id" element={<TeacherLessonPlan />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </MainLayout>
+            }
+          />
+        </Routes>
       )}
     </BrowserRouter>
   );

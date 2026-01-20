@@ -38,7 +38,7 @@ export function ActivityCard({ title, subtitle, description, badgeText = 'Activo
 
 export function ActivityCardSkeleton() {
   return (
-    <div className="bg-white/80 backdrop-blur-sm border-slate-200 p-4 rounded-3xl">
+    <div className="bg-white/60 backdrop-blur-sm border-slate-200 p-4 rounded-3xl">
       <div className="flex flex-col h-full gap-4">
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-20" />

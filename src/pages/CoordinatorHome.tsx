@@ -42,7 +42,7 @@ export function CoordinatorHome() {
         <h2 className="text-xl font-semibold text-secondary-foreground mb-6 px-4">Mis cursos</h2>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 px-4">
           {isLoading
-            ? Array.from({ length: 6 }).map((_, index) => <ActivityCardSkeleton key={index} />)
+            ? Array.from({ length: 3 }).map((_, index) => <ActivityCardSkeleton key={index} />)
             : courses.map((course) => (
                 <ActivityCard
                   key={course.id}

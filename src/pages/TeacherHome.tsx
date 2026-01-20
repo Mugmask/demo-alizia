@@ -46,7 +46,7 @@ export function TeacherHome() {
         <h2 className="text-xl font-semibold text-secondary-foreground mb-6 px-4">Mis materias</h2>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 px-4">
           {isLoading
-            ? Array.from({ length: 4 }).map((_, index) => <ActivityCardSkeleton key={index} />)
+            ? Array.from({ length: 3 }).map((_, index) => <ActivityCardSkeleton key={index} />)
             : teacherCourses.map((cs) => (
                 <ActivityCard
                   key={cs.id}

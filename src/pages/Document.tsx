@@ -1,11 +1,19 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  Share2,
+  X,
+  Mic,
+  Send,
+  Calendar,
+  ChevronRight,
+  PanelLeftClose,
+  PanelRightClose,
+  CloudCheck,
+} from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/services/api';
 import type { CoordinationDocument, ChatMessage } from '@/types';
 
@@ -27,6 +35,8 @@ export function Document() {
   } = useStore();
 
   const [chatInput, setChatInput] = useState('');
+  const [showChat, setShowChat] = useState(true);
+  const [showClasses, setShowClasses] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -144,200 +154,211 @@ export function Document() {
   const hasContent = currentDocument.content?.methodological_strategies?.trim().length > 0;
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="border-b p-4 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate('/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Doc. de coordinación
-        </Button>
-        <Button variant="outline">Compartir</Button>
+    <div className="h-screen flex flex-col gradient-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-70">
+            <ChevronLeft className="w-6 h-6 text-[#10182B]" />
+          </button>
+        </div>
+        <div className="flex items-center gap-4">
+          <h1 className="title-2-bold text-[#10182B]">Documento de coordenadas</h1>
+          <CloudCheck />
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" className="gap-2 text-primary">
+            <Share2 className="w-4 h-4" />
+            Compartir
+          </Button>
+          <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-70">
+            <X className="w-6 h-6 text-[#10182B]" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div>
-              <h2
-                className="text-3xl font-bold outline-none"
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) => handleSaveTitle(e.currentTarget.textContent || '')}
-              >
-                {currentDocument.name}
-              </h2>
+      <div className="flex-1 flex overflow-hidden p-6 gap-6">
+        {/* Left Sidebar - Chat */}
+        {showChat && (
+          <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <h3 className="headline-1-bold text-[#10182B]">Chat Alizia</h3>
+              <button onClick={() => setShowChat(false)} className="cursor-pointer hover:opacity-70">
+                <PanelLeftClose className="w-5 h-5 text-[#10182B]" />
+              </button>
             </div>
+            <div className="h-px bg-gray-200/50" />
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">Estrategia metodológica</h3>
-                  {!hasContent && !isGenerating && (
-                    <Button size="sm" onClick={handleGenerateContent}>
-                      Generar con IA
-                    </Button>
-                  )}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {chatHistory.length === 0 ? (
+                <div className="activity-card-bg rounded-2xl p-4">
+                  <h4 className="body-1-medium text-[#10182B] mb-2">Documento creado</h4>
+                  <p className="body-2-regular text-[#47566C]">
+                    Si necesitás realizar algún cambio, podés escribirme y te ayudaremos.
+                  </p>
                 </div>
-                {isGenerating ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mr-2" />
-                    <p>Generando contenido con IA...</p>
-                  </div>
-                ) : (
-                  <div className="prose max-w-none">
-                    {hasContent ? (
-                      <p>{currentDocument.content?.methodological_strategies}</p>
-                    ) : (
-                      <p className="text-muted-foreground">
-                        Haz clic en "Generar con IA" o haz doble clic para escribir manualmente
-                      </p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Tiempos</h3>
-                <p className="text-muted-foreground">
-                  {currentDocument.start_date} - {currentDocument.end_date}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Clases por disciplinas</h3>
-                <div className="space-y-4">
-                  {subjects.length === 0 ? (
-                    <p className="text-muted-foreground">No hay materias configuradas</p>
-                  ) : (
-                    subjects.map((s: any) => {
-                      const sData = subjectsData[s.id] || {};
-                      const classPlan = sData.class_plan || [];
-                      const isExpanded = expandedSubjects[s.id];
-
-                      return (
-                        <div key={s.id} className="border rounded-lg">
-                          <div
-                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
-                            onClick={() => toggleSubjectExpanded(s.id.toString())}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{isExpanded ? '▼' : '▶'}</span>
-                              <h4 className="font-semibold">{s.name}</h4>
-                            </div>
-                            <Badge variant="secondary">{classPlan.length} clases</Badge>
-                          </div>
-                          {isExpanded && (
-                            <div className="p-4 pt-0 space-y-2">
-                              {classPlan.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No hay plan de clases generado</p>
-                              ) : (
-                                classPlan.map((c: any) => (
-                                  <div key={c.class_number} className="border rounded p-3 space-y-2">
-                                    <div className="flex items-start gap-2">
-                                      <Badge variant="outline">Clase {c.class_number}</Badge>
-                                      <p className="flex-1 font-medium">{c.title || 'Sin título'}</p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                      {(c.category_ids || []).map((catId: number) => (
-                                        <Badge key={catId} variant="secondary" className="text-xs">
-                                          {categoryMap[catId] || `Cat ${catId}`}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {unassignedCategories.length > 0 && (
-                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex gap-2">
-                      <span className="text-xl">⚠️</span>
-                      <div className="flex-1">
-                        <p className="font-semibold mb-2">Conceptos sin asignar a clases:</p>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {unassignedCategories.map((cat) => (
-                            <Badge key={cat.id} variant="outline">
-                              {cat.name}
-                            </Badge>
-                          ))}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Usa el chat para asignar estos conceptos a las clases.
-                        </p>
-                      </div>
+              ) : (
+                chatHistory.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[85%] rounded-2xl p-3 ${
+                        msg.role === 'user' ? 'bg-[#735FE3] text-white' : 'activity-card-bg text-[#10182B]'
+                      }`}
+                    >
+                      <p className="body-2-regular">{msg.content}</p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <div className="w-96 border-l flex flex-col">
-          <div className="p-4 border-b flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-              A
+                ))
+              )}
+              <div ref={chatEndRef} />
             </div>
-            <div>
-              <h3 className="font-semibold">Chat con Alizia</h3>
-              <p className="text-xs text-muted-foreground">Tu asistente de planificación</p>
-            </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {chatHistory.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                Hola! Soy Alizia, tu asistente de planificación. Puedo ayudarte a modificar el documento. Prueba pedirme
-                que cambie el título o actualice una clase.
-              </div>
-            ) : (
-              chatHistory.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}
+            <div className="h-px bg-gray-200/50" />
+            <div className="p-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Escribí tu mensaje para Alizia..."
+                  disabled={isGenerating}
+                  className="w-full h-12 rounded-xl border-0 fill-primary px-4 pr-20 text-sm text-[#2C2C2C] placeholder:text-[#2C2C2C]/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <button className="p-2 hover:opacity-70 cursor-pointer">
+                    <Mic className="w-5 h-5 text-[#47566C]" />
+                  </button>
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={isGenerating || !chatInput.trim()}
+                    className="p-2 bg-[#735FE3] rounded-lg hover:bg-[#735FE3]/90 disabled:opacity-50 cursor-pointer"
                   >
-                    <p className="text-sm">{msg.content}</p>
-                  </div>
-                </div>
-              ))
-            )}
-            {isGenerating && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-lg p-3">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                    <Send className="w-4 h-4 text-white" />
+                  </button>
                 </div>
               </div>
-            )}
-            <div ref={chatEndRef} />
+              <p className="text-xs text-[#47566C]/60 mt-2 text-center">
+                Alizia puede equivocarse. Siempre verificá la información importante antes de tomar decisiones.
+              </p>
+            </div>
           </div>
+        )}
 
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Escribe un mensaje..."
-                disabled={isGenerating}
-              />
-              <Button size="icon" onClick={handleSendMessage} disabled={isGenerating}>
-                <Send className="h-4 w-4" />
-              </Button>
+        {/* Center - Document Content */}
+        <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+          <div className="p-6">
+            <h3 className="headline-1-bold text-[#10182B]">Contenido del documento</h3>
+          </div>
+          <div className="h-px bg-gray-200/50" />
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Document Info */}
+            <div className="space-y-2">
+              <h2 className="title-1-bold text-[#10182B]">{currentDocument.name}</h2>
+              <div className="flex items-center gap-2 text-[#47566C] text-sm">
+                <Calendar className="w-4 h-4" />
+                <span>
+                  {currentDocument.start_date} - {currentDocument.end_date}
+                </span>
+              </div>
+            </div>
+
+            {/* Content Sections */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="headline-1-bold text-[#10182B] mb-3">Título sección</h3>
+                <p className="body-2-regular text-[#47566C] leading-relaxed">
+                  {currentDocument.content?.methodological_strategies ||
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="headline-1-bold text-[#10182B] mb-3">Título sección</h3>
+                <p className="body-2-regular text-[#47566C] leading-relaxed">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+                  dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+                  aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+                  dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+                  officia deserunt mollit anim id est laborum.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="headline-1-bold text-[#10182B] mb-3">Título sección</h3>
+                <p className="body-2-regular text-[#47566C] leading-relaxed">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+                  dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+                  aliquip ex ea commodo consequat.
+                </p>
+              </div>
+
+              {/* Cronograma */}
+              <div className="activity-card-bg rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="headline-1-bold text-[#10182B]">Cronograma de clases por disciplinas</h3>
+                  <button className="flex items-center gap-2 text-primary body-2-medium cursor-pointer hover:opacity-70">
+                    ver clases
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Right Sidebar - Classes */}
+        {showClasses && (
+          <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <h3 className="headline-1-bold text-[#10182B]">Clases por disciplinas</h3>
+              <button onClick={() => setShowClasses(false)} className="cursor-pointer hover:opacity-70">
+                <X className="w-5 h-5 text-[#10182B]" />
+              </button>
+            </div>
+            <div className="h-px bg-gray-200/50" />
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {subjects.length === 0 ? (
+                <p className="body-2-regular text-[#47566C]">No hay materias configuradas</p>
+              ) : (
+                subjects.map((s: any) => {
+                  const sData = subjectsData[s.id] || {};
+                  const classPlan = sData.class_plan || [];
+
+                  return (
+                    <div key={s.id} className="space-y-2">
+                      <h4 className="body-1-medium text-[#10182B]">{s.name}</h4>
+                      {classPlan.length === 0 ? (
+                        <p className="body-2-regular text-[#47566C]">No hay clases planificadas</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {classPlan.map((c: any) => (
+                            <div key={c.class_number} className="activity-card-bg rounded-xl p-3">
+                              <p className="body-2-medium text-[#10182B] mb-1">
+                                Clase {c.class_number}: {c.title || 'Sin título'}
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {(c.category_ids || []).map((catId: number) => (
+                                  <span
+                                    key={catId}
+                                    className="px-2 py-0.5 rounded-md bg-[#735FE3]/10 text-[#735FE3] text-xs"
+                                  >
+                                    {categoryMap[catId] || `Cat ${catId}`}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
