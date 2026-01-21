@@ -86,6 +86,7 @@ function App() {
         <Routes>
           <Route path="/curso/:id/crear" element={<Wizard />} />
           <Route path="/doc/:id" element={<Document />} />
+          <Route path="/teacher/plan/:id" element={<TeacherLessonPlan />} />
           <Route
             path="*"
             element={
@@ -106,7 +107,6 @@ function App() {
                   <Route path="/curso/:id" element={<Course />} />
                   <Route path="/teacher/cs/:id" element={<TeacherCourseSubject />} />
                   <Route path="/teacher/planificar/:csId/:classNumber" element={<TeacherPlanWizard />} />
-                  <Route path="/teacher/plan/:id" element={<TeacherLessonPlan />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </MainLayout>

@@ -1,11 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ChevronLeft, X, Send, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/services/api';
 import type { ChatMessage } from '@/types';
 
@@ -40,12 +37,51 @@ export function TeacherLessonPlan() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [teacherChatHistory]);
 
+  // Auto-generate content for all moments when plan loads for the first time
+  useEffect(() => {
+    if (currentLessonPlan && !isGenerating) {
+      const moments = (currentLessonPlan as any).moments || {};
+      const needsGeneration = ['apertura', 'desarrollo', 'cierre'].some(
+        (moment) => !moments[moment]?.generatedContent || moments[moment]?.generatedContent.trim() === '',
+      );
+
+      if (needsGeneration) {
+        handleGenerateAllMoments();
+      }
+    }
+  }, [currentLessonPlan]);
+
   const loadPlan = async () => {
     try {
       const plan = await api.lessonPlans.getById(planId);
       setCurrentLessonPlan(plan as any);
     } catch (error) {
       console.error('Error loading plan:', error);
+    }
+  };
+
+  const handleGenerateAllMoments = async () => {
+    if (!currentLessonPlan || isGenerating) return;
+
+    setIsGenerating(true);
+    try {
+      // Generate content for all three moments sequentially
+      const momentTypes = ['apertura', 'desarrollo', 'cierre'];
+
+      for (const momentType of momentTypes) {
+        await api.chat.sendMessage(`/teacher-lesson-plans/${planId}/generate-moment`, {
+          moment_type: momentType,
+        });
+      }
+
+      // Reload the full plan to get all generated content
+      const updatedPlan = await api.lessonPlans.getById(planId);
+      setCurrentLessonPlan(updatedPlan as any);
+    } catch (error) {
+      console.error('Error generating moments:', error);
+      alert('Error al generar contenido con IA');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -99,7 +135,8 @@ export function TeacherLessonPlan() {
   });
 
   const getActivityNames = (momentKey: string) => {
-    const activityIds = currentLessonPlan.moments?.[momentKey]?.activities || [];
+    const moments = currentLessonPlan.moments as any;
+    const activityIds = moments?.[momentKey]?.activities || [];
     return activityIds.map((actId: number) => {
       const act = activities.find((a) => a.id === actId);
       return act ? act.name : `Act ${actId}`;
@@ -113,136 +150,138 @@ export function TeacherLessonPlan() {
   ];
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="border-b p-4 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {currentLessonPlan.course_name} - {currentLessonPlan.subject_name}
-        </Button>
-        <Badge variant={currentLessonPlan.status === 'planned' ? 'default' : 'secondary'}>
-          {currentLessonPlan.status === 'planned' ? 'Planificada' : 'En progreso'}
-        </Badge>
+    <div className="h-screen flex flex-col gradient-background">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50">
+        <button
+          onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
+          className="cursor-pointer hover:opacity-70"
+        >
+          <ChevronLeft className="w-6 h-6 text-[#10182B]" />
+        </button>
+        <h1 className="title-2-bold text-[#10182B]">Planificación de clase</h1>
+        <button
+          onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
+          className="cursor-pointer hover:opacity-70"
+        >
+          <X className="w-6 h-6 text-[#10182B]" />
+        </button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div>
-              <h2 className="text-3xl font-bold">
-                Clase {currentLessonPlan.class_number}: {currentLessonPlan.title || 'Sin título'}
-              </h2>
-            </div>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Objetivo</h3>
-                <p>{currentLessonPlan.objective || <em>No definido</em>}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-3">Categorías</h3>
-                <div className="flex flex-wrap gap-2">
-                  {categoryNames.map((name, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {name}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Momentos de la clase</h3>
-                <div className="space-y-4">
-                  {momentTypes.map((mt) => {
-                    const activityNames = getActivityNames(mt.key);
-                    const customText = currentLessonPlan.moments?.[mt.key]?.customText || '';
-
-                    return (
-                      <div key={mt.key} className="border rounded-lg p-4">
-                        <h4 className="font-semibold mb-2">{mt.name}</h4>
-                        {activityNames.length > 0 && (
-                          <div className="mb-2">
-                            <p className="text-sm font-medium mb-1">Actividades:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {activityNames.map((name, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {customText && (
-                          <div>
-                            <p className="text-sm font-medium mb-1">Otros:</p>
-                            <p className="text-sm text-muted-foreground">{customText}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+      <div className="flex-1 flex overflow-hidden p-6 gap-6">
+        {/* Left Sidebar - Chat */}
+        <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+          <div className="p-4 flex items-center justify-between">
+            <h3 className="headline-1-bold text-[#10182B]">Chat Alizia</h3>
           </div>
-        </div>
-
-        <div className="w-96 border-l flex flex-col">
-          <div className="p-4 border-b flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-              A
-            </div>
-            <div>
-              <h3 className="font-semibold">Chat con Alizia</h3>
-              <p className="text-xs text-muted-foreground">Tu asistente de planificación</p>
-            </div>
-          </div>
+          <div className="h-px bg-gray-200/50" />
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {teacherChatHistory.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                Hola! Soy Alizia, tu asistente de planificación. Puedo ayudarte a mejorar tu plan de clase. Pídeme que
-                reescriba la apertura, cambie el desarrollo, o modifique cualquier momento.
+              <div className="activity-card-bg rounded-2xl p-4">
+                <h4 className="body-1-medium text-[#10182B] mb-2">Plan creado</h4>
+                <p className="body-2-regular text-[#47566C]">
+                  Si necesitás realizar algún cambio, podés escribirme y te ayudaremos.
+                </p>
               </div>
             ) : (
               teacherChatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    className={`max-w-[85%] rounded-2xl p-3 ${
+                      msg.role === 'user' ? 'bg-[#735FE3] text-white' : 'activity-card-bg text-[#10182B]'
                     }`}
                   >
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="body-2-regular">{msg.content}</p>
                   </div>
                 </div>
               ))
             )}
             {isGenerating && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg p-3">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="activity-card-bg rounded-2xl p-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 </div>
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
+          <div className="h-px bg-gray-200/50" />
+          <div className="p-4">
+            <div className="relative">
+              <input
+                type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Escribe un mensaje..."
+                placeholder="Escribí tu mensaje para Alizia..."
                 disabled={isGenerating}
+                className="w-full h-12 rounded-xl border-0 fill-primary px-4 pr-12 text-sm text-[#2C2C2C] placeholder:text-[#2C2C2C]/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
-              <Button size="icon" onClick={handleSendMessage} disabled={isGenerating}>
-                <Send className="h-4 w-4" />
-              </Button>
+              <button
+                onClick={handleSendMessage}
+                disabled={isGenerating || !chatInput.trim()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#735FE3] rounded-lg hover:bg-[#735FE3]/90 disabled:opacity-50 cursor-pointer"
+              >
+                <Send className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            <p className="text-xs text-[#47566C]/60 mt-2 text-center">
+              Alizia puede equivocarse. Siempre verificá la información importante antes de tomar decisiones.
+            </p>
+          </div>
+        </div>
+
+        {/* Center - AI Generated Content */}
+        <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+          <div className="h-px bg-gray-200/50" />
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Momentos de la clase */}
+            <div className="space-y-4">
+              <h3 className="headline-1-bold text-[#10182B]">Momentos de la clase</h3>
+              {isGenerating ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                  <p className="body-2-regular text-[#47566C]">Generando contenido con IA...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {momentTypes.map((mt) => {
+                    const activityNames = getActivityNames(mt.key);
+                    const moments = currentLessonPlan.moments as any;
+                    const generatedContent = moments?.[mt.key]?.generatedContent || '';
+
+                    return (
+                      <div key={mt.key} className="activity-card-bg rounded-2xl p-4 space-y-3">
+                        <h4 className="body-1-medium text-secondary-foreground">{mt.name}</h4>
+                        {activityNames.length > 0 && (
+                          <div>
+                            <p className="body-2-medium text-[#10182B] mb-2">Estrategias didácticas:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {activityNames.map((name: string, idx: number) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                  {name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {generatedContent ? (
+                          <div>
+                            <p className="body-2-medium text-[#10182B] mb-2">Contenido generado:</p>
+                            <p className="body-2-regular text-[#47566C] leading-relaxed whitespace-pre-wrap">
+                              {generatedContent}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="body-2-regular text-[#47566C]/60 italic">Generando contenido con IA...</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

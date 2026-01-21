@@ -19,11 +19,12 @@ export function TeacherHome() {
   }, [teacherId]);
 
   const loadTeacherCourses = async () => {
+    if (!teacherId) return;
+
     try {
       setIsLoading(true);
-      const allCourseSubjects = await api.courseSubjects.getAll();
-      const teacherCourseSubjects = (allCourseSubjects as CourseSubject[]).filter((cs) => cs.teacher_id === teacherId);
-      setTeacherCourses(teacherCourseSubjects);
+      const teacherCourseSubjects = await api.teachers.getCourses(teacherId);
+      setTeacherCourses(teacherCourseSubjects as CourseSubject[]);
     } catch (error) {
       console.error('Error loading teacher courses:', error);
     } finally {

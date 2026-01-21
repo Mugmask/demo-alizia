@@ -83,6 +83,9 @@ export const api = {
     getById: (id: number) => fetchData(`/course-subjects/${id}`),
     getCoordinationStatus: (id: number) => fetchData(`/course-subjects/${id}/coordination-status`),
   },
+  teachers: {
+    getCourses: (teacherId: number) => fetchData(`/teachers/${teacherId}/courses`),
+  },
   momentTypes: {
     getAll: () => fetchData('/moment-types'),
   },
@@ -91,11 +94,11 @@ export const api = {
   },
   lessonPlans: {
     getAll: () => fetchData('/lesson-plans'),
-    getById: (id: number) => fetchData(`/lesson-plans/${id}`),
+    getById: (id: number) => fetchData(`/teacher-lesson-plans/${id}`),
     getByCourseSubject: (csId: number) => fetchData(`/course-subjects/${csId}/lesson-plans`),
-    create: (data: any) => postData('/lesson-plans', data),
-    update: (id: number, data: any) => putData(`/lesson-plans/${id}`, data),
-    delete: (id: number) => deleteData(`/lesson-plans/${id}`),
+    create: (data: any) => postData('/teacher-lesson-plans', data),
+    update: (id: number, data: any) => putData(`/teacher-lesson-plans/${id}`, data),
+    delete: (id: number) => deleteData(`/teacher-lesson-plans/${id}`),
   },
   chat: {
     sendMessage: (endpoint: string, data: any) => postData(endpoint, data),

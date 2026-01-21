@@ -13,57 +13,20 @@ interface Student {
   name: string;
 }
 
-const DOCUMENT_SECTIONS: DocumentSection[] = [
-  {
-    id: 1,
-    name: 'Primer cuatrimestre',
-    topics: [
-      {
-        id: 1,
-        name: 'Revolución Negra de Haití',
-        status: 'pending',
-        categoriesCount: 7,
-      },
-      {
-        id: 2,
-        name: 'Revolución Cubana',
-        status: 'pending',
-        categoriesCount: 7,
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Segundo cuatrimestre',
-    topics: [
-      {
-        id: 3,
-        name: 'Revolución Industrial China',
-        status: 'pending',
-        categoriesCount: 4,
-      },
-      {
-        id: 4,
-        name: 'Revolución Industrial Inglesa',
-        status: 'pending',
-        categoriesCount: 4,
-      },
-    ],
-  },
-];
-
 export function Course() {
   const { id } = useParams();
   const navigate = useNavigate();
   const courseId = parseInt(id || '0');
 
-  const { courses } = useStore();
+  const { courses, nuclei, knowledgeAreas, categories } = useStore();
   const getUserArea = useStore((state) => state.getUserArea());
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [documentSections, setDocumentSections] = useState<DocumentSection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const course = courses.find((c) => c.id === courseId);
+  const userArea = getUserArea;
 
   useEffect(() => {
     loadCourseData();
@@ -74,6 +37,63 @@ export function Course() {
       setIsLoading(true);
       const studentsData = await api.courses.getStudents(courseId);
       setStudents(studentsData as Student[]);
+
+      // Load existing coordination documents for this area
+      const allDocs = await api.documents.getAll();
+      const areaDocs = userArea ? (allDocs as any[]).filter((d) => d.area_id === userArea.id) : [];
+
+      // Build sections from nuclei
+      if (userArea && nuclei.length > 0) {
+        const midpoint = Math.ceil(nuclei.length / 2);
+        const firstSemesterNuclei = nuclei.slice(0, midpoint);
+        const secondSemesterNuclei = nuclei.slice(midpoint);
+
+        const sections: DocumentSection[] = [];
+
+        // Helper function to build topics with document status
+        const buildTopics = (nucleiList: any[]) => {
+          return nucleiList.map((nucleus) => {
+            const nucleusKnowledgeAreas = knowledgeAreas.filter((ka) => ka.nucleus_id === nucleus.id);
+            const nucleusCategoryCount = categories.filter((cat) =>
+              nucleusKnowledgeAreas.some((ka) => ka.id === cat.knowledge_area_id),
+            ).length;
+
+            // Find if there's a document for this nucleus
+            const existingDoc = areaDocs.find((doc: any) => doc.nucleus_ids && doc.nucleus_ids.includes(nucleus.id));
+
+            return {
+              id: nucleus.id,
+              name: nucleus.name,
+              status: (existingDoc ? (existingDoc.status === 'published' ? 'completed' : 'in_progress') : 'pending') as
+                | 'pending'
+                | 'in_progress'
+                | 'completed',
+              categoriesCount: nucleusCategoryCount,
+              documentId: existingDoc?.id,
+            };
+          });
+        };
+
+        // Primer cuatrimestre
+        if (firstSemesterNuclei.length > 0) {
+          sections.push({
+            id: 1,
+            name: 'Primer cuatrimestre',
+            topics: buildTopics(firstSemesterNuclei),
+          });
+        }
+
+        // Segundo cuatrimestre
+        if (secondSemesterNuclei.length > 0) {
+          sections.push({
+            id: 2,
+            name: 'Segundo cuatrimestre',
+            topics: buildTopics(secondSemesterNuclei),
+          });
+        }
+
+        setDocumentSections(sections);
+      }
     } catch (error) {
       console.error('Error loading course data:', error);
     } finally {
@@ -81,8 +101,8 @@ export function Course() {
     }
   };
 
-  const handleStartWizard = (topicId: number) => {
-    navigate(`/curso/${courseId}/crear?topicId=${topicId}`);
+  const handleCreateDocument = () => {
+    navigate(`/curso/${courseId}/crear`);
   };
 
   const handleEditDocument = (documentId: number) => {
@@ -129,10 +149,12 @@ export function Course() {
 
         <TabsCustomContent value="classes" className="space-y-6">
           <DocumentSectionsList
-            sections={DOCUMENT_SECTIONS}
+            sections={documentSections}
             isLoading={isLoading}
-            onCreateDocument={handleStartWizard}
+            onCreateDocument={handleCreateDocument}
             onEditDocument={handleEditDocument}
+            createButtonText="Crear documento"
+            editButtonText="Ver documento"
           />
         </TabsCustomContent>
       </TabsCustom>

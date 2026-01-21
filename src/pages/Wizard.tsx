@@ -1,13 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, X, Minus, Plus, HelpCircle } from 'lucide-react';
+import { X, HelpCircle, Plus, Minus, ArrowRight } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
+import { DateInput } from '@/components/ui/date-input';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export function Wizard() {
   const { id } = useParams();
@@ -20,6 +20,9 @@ export function Wizard() {
 
   const currentCourse = courses.find((c) => c.id === courseId);
   const areaSubjects = getUserArea ? subjects.filter((s) => s.area_id === getUserArea.id) : [];
+
+  // Track previous dates to detect changes
+  const prevDatesRef = useRef({ startDate: '', endDate: '' });
 
   useEffect(() => {
     if (getUserArea && nuclei.length > 0) {
@@ -39,6 +42,20 @@ export function Wizard() {
 
   useEffect(() => {
     if (wizardData.startDate && wizardData.endDate && areaSubjects.length > 0) {
+      // Check if dates actually changed
+      const datesChanged =
+        prevDatesRef.current.startDate !== wizardData.startDate || prevDatesRef.current.endDate !== wizardData.endDate;
+
+      if (!datesChanged) {
+        return;
+      }
+
+      // Update the ref with new dates
+      prevDatesRef.current = {
+        startDate: wizardData.startDate,
+        endDate: wizardData.endDate,
+      };
+
       const start = new Date(wizardData.startDate);
       const end = new Date(wizardData.endDate);
 
@@ -48,7 +65,6 @@ export function Wizard() {
         const diffWeeks = diffDays / 7;
 
         const newSubjectsData = { ...wizardData.subjectsData };
-        let hasChanges = false;
 
         areaSubjects.forEach((subject) => {
           let classesPerWeek = 0;
@@ -70,21 +86,14 @@ export function Wizard() {
           }
 
           const totalClasses = Math.ceil(diffWeeks * classesPerWeek);
-          const currentCount = newSubjectsData[subject.id]?.class_count || 0;
 
-          // Solo actualizar si el valor calculado es diferente
-          if (currentCount !== totalClasses) {
-            newSubjectsData[subject.id] = {
-              ...(newSubjectsData[subject.id] || {}),
-              class_count: totalClasses,
-            };
-            hasChanges = true;
-          }
+          newSubjectsData[subject.id] = {
+            ...(newSubjectsData[subject.id] || {}),
+            class_count: totalClasses,
+          };
         });
 
-        if (hasChanges) {
-          updateWizardData({ subjectsData: newSubjectsData });
-        }
+        updateWizardData({ subjectsData: newSubjectsData });
       }
     }
   }, [wizardData.startDate, wizardData.endDate, areaSubjects, currentCourse]);
@@ -262,7 +271,12 @@ export function Wizard() {
                                 updateWizardData({ subjectsData: newSubjectsData });
                               }
                             }}
-                            className="w-8 h-8 flex items-center justify-center transition-colors border-2 border-[#E4E8EF] rounded-lg cursor-pointer"
+                            disabled={currentCount === 0}
+                            className={`w-8 h-8 flex items-center justify-center transition-colors rounded-lg ${
+                              currentCount > 0
+                                ? 'bg-white/60 border-gray-100 border-2 cursor-pointer hover:bg-white/80'
+                                : 'border-2 border-[#E4E8EF] cursor-not-allowed opacity-50'
+                            }`}
                           >
                             <Minus className="w-5 h-5" />
                           </button>
@@ -277,7 +291,7 @@ export function Wizard() {
                               };
                               updateWizardData({ subjectsData: newSubjectsData });
                             }}
-                            className="w-8 h-8 flex rounded-lg items-center justify-center bg-white/60 border-gray-100 border-2 transition-colors cursor-pointer"
+                            className="w-8 h-8 flex rounded-lg items-center justify-center bg-white/60 border-gray-100 border-2 transition-colors cursor-pointer hover:bg-white/80"
                           >
                             <Plus className="w-5 h-5" />
                           </button>

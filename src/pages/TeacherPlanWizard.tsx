@@ -90,20 +90,28 @@ export function TeacherPlanWizard() {
   };
 
   const handleCreatePlan = async () => {
+    if (!coordinationStatus || !coordinationStatus.has_published_document) {
+      alert('No hay documento de coordinación publicado');
+      return;
+    }
+
     const data = {
       course_subject_id: courseSubjectId,
+      coordination_document_id: coordinationStatus.document_id,
       class_number: classNum,
       title: lessonWizardData.title,
-      objective: lessonWizardData.objective,
       category_ids: lessonWizardData.categoryIds,
+      objective: lessonWizardData.objective,
+      knowledge_content: lessonWizardData.knowledgeContent || '',
+      didactic_strategies: lessonWizardData.didacticStrategies || '',
+      class_format: lessonWizardData.classFormat || '',
       moments: lessonWizardData.moments,
-      status: 'planned',
     };
 
     try {
-      await api.lessonPlans.create(data);
+      const createdPlan = await api.lessonPlans.create(data);
       resetLessonWizardData();
-      navigate(`/teacher/cs/${courseSubjectId}`);
+      navigate(`/teacher/plan/${(createdPlan as any).id}`);
     } catch (error) {
       console.error('Error creating lesson plan:', error);
       alert('Error al crear el plan de clase');
