@@ -210,7 +210,7 @@ export function Document() {
             placeholder="Escribí tu mensaje para Alizia..."
             welcomeMessage={{
               title: 'Documento creado',
-              content: 'Si necesitás realizar algún cambio, podés escribirme y te ayudaremos.',
+              content: 'Si necesitás realizar algún cambio, podés escribirme y lo ajustamos.',
             }}
           />
         </div>

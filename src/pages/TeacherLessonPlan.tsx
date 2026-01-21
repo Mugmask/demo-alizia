@@ -193,8 +193,8 @@ export function TeacherLessonPlan() {
             isGenerating={isGenerating}
             placeholder="Escribí tu mensaje para Alizia..."
             welcomeMessage={{
-              title: 'Plan creado',
-              content: 'Si necesitás realizar algún cambio, podés escribirme y te ayudaremos.',
+              title: 'Clase creada',
+              content: 'Si necesitás realizar algún cambio, podés escribirme y lo ajustamos.',
             }}
           />
         </div>
@@ -202,11 +202,13 @@ export function TeacherLessonPlan() {
         {/* Center - AI Generated Content */}
         <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
           <div className="h-px bg-gray-200/50" />
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-6">
             {/* Momentos de la clase */}
-            <div className="space-y-4">
-              <h3 className="headline-1-bold text-[#10182B]">Momentos de la clase</h3>
-              <div className="space-y-4">
+            <div>
+              <div className="p-4 px-6 border-b border-muted flex flex-row items-center justify-between">
+                <h3 className="headline-1-bold text-[#10182B]">Momentos de la clase</h3>
+              </div>
+              <div className="space-y-4 p-4">
                 {momentTypes.map((mt) => {
                   const activityNames = getActivityNames(mt.key);
                   const moments = currentLessonPlan.moments as any;
@@ -220,7 +222,7 @@ export function TeacherLessonPlan() {
                           <p className="body-2-medium text-[#10182B] mb-2">Estrategias didácticas:</p>
                           <div className="flex flex-wrap gap-2">
                             {activityNames.map((name: string, idx: number) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
+                              <Badge key={idx} variant="secondary" className="text-xs fill-primary">
                                 {name}
                               </Badge>
                             ))}
