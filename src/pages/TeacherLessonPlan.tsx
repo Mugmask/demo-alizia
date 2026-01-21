@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, X, Loader2 } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Badge } from '@/components/ui/badge';
 import { ChatBot } from '@/components/ui/ChatBot';
@@ -12,6 +12,8 @@ export function TeacherLessonPlan() {
   const navigate = useNavigate();
   const planId = parseInt(id || '0');
 
+  const [editingContent, setEditingContent] = useState<{ [key: string]: string }>({});
+
   const {
     currentLessonPlan,
     setCurrentLessonPlan,
@@ -20,7 +22,6 @@ export function TeacherLessonPlan() {
     clearTeacherChatHistory,
     isGenerating,
     setIsGenerating,
-    categories,
     activities,
   } = useStore();
 
@@ -107,14 +108,47 @@ export function TeacherLessonPlan() {
     }
   };
 
+  const handleContentEdit = (momentKey: string, content: string) => {
+    setEditingContent((prev) => ({
+      ...prev,
+      [momentKey]: content,
+    }));
+  };
+
+  const handleSaveContent = async (momentKey: string) => {
+    try {
+      const updatedContent = editingContent[momentKey];
+      if (!updatedContent || !currentLessonPlan) return;
+
+      const moments = { ...(currentLessonPlan as any).moments };
+      moments[momentKey] = {
+        ...moments[momentKey],
+        generatedContent: updatedContent,
+      };
+
+      await api.lessonPlans.update(planId, { moments });
+
+      // Update local state
+      setCurrentLessonPlan({
+        ...currentLessonPlan,
+        moments,
+      } as any);
+
+      // Clear editing state for this moment
+      setEditingContent((prev) => {
+        const newState = { ...prev };
+        delete newState[momentKey];
+        return newState;
+      });
+    } catch (error) {
+      console.error('Error saving content:', error);
+      alert('Error al guardar el contenido');
+    }
+  };
+
   if (!currentLessonPlan) {
     return <div className="flex items-center justify-center h-screen">Cargando...</div>;
   }
-
-  const categoryNames = (currentLessonPlan.category_ids || []).map((catId: number) => {
-    const cat = categories.find((c) => c.id === catId);
-    return cat ? cat.name : `Cat ${catId}`;
-  });
 
   const getActivityNames = (momentKey: string) => {
     const moments = currentLessonPlan.moments as any;
@@ -193,17 +227,56 @@ export function TeacherLessonPlan() {
                           </div>
                         </div>
                       )}
-                      {isGenerating && !generatedContent ? (
-                        <div className="flex flex-col items-center justify-center py-8">
-                          <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                          <p className="body-2-regular text-[#47566C]">Generando contenido con IA...</p>
-                        </div>
-                      ) : generatedContent ? (
+                      {generatedContent ? (
                         <div>
-                          <p className="body-2-medium text-[#10182B] mb-2">Contenido generado:</p>
-                          <p className="body-2-regular text-[#47566C] leading-relaxed whitespace-pre-wrap">
-                            {generatedContent}
-                          </p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="body-2-medium text-[#10182B] mb-2">Contenido generado:</p>
+                            <button
+                              onClick={() => handleContentEdit(mt.key, generatedContent)}
+                              className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
+                            >
+                              Editar
+                            </button>
+                          </div>
+                          {editingContent[mt.key] !== undefined ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingContent[mt.key]}
+                                onChange={(e) => handleContentEdit(mt.key, e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-lg text-sm text-[#47566C] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={8}
+                                placeholder="Editá el contenido generado..."
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveContent(mt.key)}
+                                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
+                                >
+                                  Guardar
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingContent((prev) => {
+                                      const newState = { ...prev };
+                                      delete newState[mt.key];
+                                      return newState;
+                                    });
+                                  }}
+                                  className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 cursor-pointer"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p
+                              className="body-2-regular text-[#47566C] leading-relaxed whitespace-pre-wrap cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                              onClick={() => handleContentEdit(mt.key, generatedContent)}
+                              title="Clic para editar"
+                            >
+                              {generatedContent}
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <p className="body-2-regular text-[#47566C]/60 italic">Generando contenido con IA...</p>

@@ -21,7 +21,6 @@ export function TeacherPlanWizard() {
     updateLessonWizardData,
     resetLessonWizardData,
     categories,
-    nuclei,
     activities,
     coordinationStatus,
   } = useStore();
@@ -41,16 +40,6 @@ export function TeacherPlanWizard() {
       });
     }
   }, []);
-
-  const toggleCategory = (categoryId: number) => {
-    const idx = lessonWizardData.categoryIds.indexOf(categoryId);
-    const newCategoryIds =
-      idx === -1
-        ? [...lessonWizardData.categoryIds, categoryId]
-        : lessonWizardData.categoryIds.filter((id) => id !== categoryId);
-
-    updateLessonWizardData({ categoryIds: newCategoryIds });
-  };
 
   const openModal = (momentKey: string) => {
     setCurrentMoment(momentKey);
@@ -119,10 +108,6 @@ export function TeacherPlanWizard() {
   };
 
   const progress = (lessonWizardData.step / 2) * 100;
-
-  const documentNucleusIds = coordinationStatus?.nucleus_ids || [];
-  const nucleiNames = nuclei.filter((n) => documentNucleusIds.includes(n.id)).map((n) => n.name);
-  const nucleiInfo = nucleiNames.length > 0 ? nucleiNames.join(', ') : 'Sin núcleos definidos';
 
   const documentCategoryIds = coordinationStatus?.category_ids || [];
   const availableCategories = categories.filter((c) => documentCategoryIds.includes(c.id));

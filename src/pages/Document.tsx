@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Share2, X, Calendar, Loader2, Share } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Calendar, Loader2, Share } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import { ChatBot } from '@/components/ui/ChatBot';
