@@ -23,6 +23,9 @@ export function Document() {
   } = useStore();
 
   const [isChatGenerating, setIsChatGenerating] = useState(false);
+  const [editingContent, setEditingContent] = useState<{ strategy?: string; title?: string }>({});
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [isClassesCollapsed, setIsClassesCollapsed] = useState(false);
 
   useEffect(() => {
     loadDocument();
@@ -125,10 +128,6 @@ export function Document() {
     }
   };
 
-  const handleEditStrategy = () => {
-    // This would open an inline editor for the strategy
-  };
-
   const handlePublishDocument = async () => {
     if (!currentDocument) return;
 
@@ -140,6 +139,46 @@ export function Document() {
     } catch (error) {
       console.error('Error publishing document:', error);
       alert('Error al publicar el documento');
+    }
+  };
+
+  const handleContentEdit = (field: 'strategy' | 'title', content: string) => {
+    setEditingContent((prev) => ({
+      ...prev,
+      [field]: content,
+    }));
+  };
+
+  const handleSaveContent = async (field: 'strategy' | 'title') => {
+    try {
+      const updatedContent = editingContent[field];
+      if (!updatedContent || !currentDocument) return;
+
+      let updateData: any = {};
+
+      if (field === 'title') {
+        updateData = { name: updatedContent };
+      } else if (field === 'strategy') {
+        updateData = { methodological_strategies: updatedContent };
+      }
+
+      await api.documents.update(docId, updateData);
+
+      // Update local state
+      setCurrentDocument({
+        ...currentDocument,
+        ...updateData,
+      } as any);
+
+      // Clear editing state for this field
+      setEditingContent((prev) => {
+        const newState = { ...prev };
+        delete newState[field];
+        return newState;
+      });
+    } catch (error) {
+      console.error('Error saving content:', error);
+      alert('Error al guardar el contenido');
     }
   };
 
@@ -202,7 +241,7 @@ export function Document() {
 
       <div className="flex-1 flex overflow-hidden p-6 gap-6">
         {/* Left Sidebar - Chat */}
-        <div className="w-80 flex flex-col">
+        <div className={`${isChatCollapsed ? 'w-12' : 'w-80'} flex flex-col transition-all duration-300 ease-in-out`}>
           <ChatBot
             messages={chatHistory}
             onSendMessage={handleChatMessage}
@@ -212,6 +251,8 @@ export function Document() {
               title: 'Documento creado',
               content: 'Si necesitás realizar algún cambio, podés escribirme y lo ajustamos.',
             }}
+            isCollapsed={isChatCollapsed}
+            onToggleCollapse={() => setIsChatCollapsed(!isChatCollapsed)}
           />
         </div>
 
@@ -219,7 +260,53 @@ export function Document() {
         <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
           {/* Document Title Header */}
           <div className="p-4 px-6 border-b border-muted flex flex-row items-center justify-between">
-            <h2 className="headline-1-bold text-[#10182B]">{currentDocument.name}</h2>
+            <div className="flex-1">
+              {editingContent.title !== undefined ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={editingContent.title}
+                    onChange={(e) => handleContentEdit('title', e.target.value)}
+                    className="headline-1-bold text-[#10182B] bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 px-1 py-0"
+                    placeholder="Título del documento"
+                  />
+                  <button
+                    onClick={() => handleSaveContent('title')}
+                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 cursor-pointer"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingContent((prev) => {
+                        const newState = { ...prev };
+                        delete newState.title;
+                        return newState;
+                      });
+                    }}
+                    className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h2
+                    className="headline-1-bold text-[#10182B] cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors"
+                    onClick={() => handleContentEdit('title', currentDocument.name)}
+                    title="Clic para editar"
+                  >
+                    {currentDocument.name}
+                  </h2>
+                  <button
+                    onClick={() => handleContentEdit('title', currentDocument.name)}
+                    className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
+                  >
+                    Editar
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-[#47566C] text-sm">
               <Calendar className="w-4 h-4" />
               <span>
@@ -239,212 +326,268 @@ export function Document() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {/* Methodological Strategy Section */}
-            <div className="space-y-4">
-              <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
-              {isGenerating ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                  <p className="body-2-regular text-[#47566C]">Generando contenido con IA...</p>
-                </div>
-              ) : (
-                <div
-                  className="body-2-regular text-secondary-foreground whitespace-pre-wrap"
-                  onDoubleClick={handleEditStrategy}
-                >
-                  {hasContent ? (
-                    (currentDocument as any).methodological_strategies
-                  ) : (
-                    <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Methodological Strategy Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
+                  {hasContent && !isGenerating && (
+                    <button
+                      onClick={() => handleContentEdit('strategy', (currentDocument as any).methodological_strategies)}
+                      className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
+                    >
+                      Editar
+                    </button>
                   )}
                 </div>
-              )}
-
-              {/* Separator */}
-              {hasContent && !isGenerating && <div className="border-t border-muted my-8"></div>}
-
-              {/* Class Schedule Section */}
-              {hasContent && !isGenerating && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="headline-1-bold text-[#10182B]">Cronograma de clases por disciplinas</h3>
-                    <Button className="flex items-center gap-2 text-primary bg-muted border-none cursor-pointer rounded-xl hover:bg-muted hover:text-primary">
-                      Ver clases
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                {isGenerating ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                    <p className="body-2-regular text-[#47566C]">Generando contenido con IA...</p>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Sidebar - Classes by Discipline */}
-        <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
-          <div className="p-4 border-b border-muted flex items-center justify-between">
-            <h3 className="headline-1-bold text-[#10182B]">Clases por disciplinas</h3>
-            <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-70">
-              <X className="w-5 h-5 text-[#10182B]" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {(() => {
-              // Collect all classes from all subjects separately
-              const allClasses: any[] = [];
-              const subjectColors: Record<number, string> = {};
-              const colorPalette = [
-                '#8B5CF6', // purple
-                '#10B981', // green
-                '#F59E0B', // orange
-                '#EF4444', // red
-                '#3B82F6', // blue
-                '#EC4899', // pink
-                '#14B8A6', // teal
-              ];
-
-              subjects.forEach((s: any, idx: number) => {
-                subjectColors[s.id] = colorPalette[idx % colorPalette.length];
-                const sData = subjectsData[s.id] || {};
-                const classPlan = sData.class_plan || [];
-
-                classPlan.forEach((c: any) => {
-                  // Add each class separately for each subject
-                  allClasses.push({
-                    class_number: c.class_number,
-                    title: c.title || 'Título clase',
-                    date: c.date || '',
-                    subject_id: s.id,
-                    subject_name: s.name,
-                    category_ids: c.category_ids || [],
-                  });
-                });
-              });
-
-              // Sort classes by class_number, then by subject
-              allClasses.sort((a, b) => {
-                if (a.class_number !== b.class_number) {
-                  return a.class_number - b.class_number;
-                }
-                return a.subject_name.localeCompare(b.subject_name);
-              });
-
-              // Helper function to get week date range
-              const getWeekLabel = (classNumber: number, startDate: string) => {
-                if (!startDate) return `Semana ${Math.floor((classNumber - 1) / 4) + 1}`;
-
-                const start = new Date(startDate);
-                const weekNumber = Math.floor((classNumber - 1) / 4);
-                const weekStart = new Date(start);
-                weekStart.setDate(start.getDate() + weekNumber * 7);
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekStart.getDate() + 6);
-
-                const formatDate = (date: Date) => {
-                  const day = date.getDate();
-                  const months = [
-                    'enero',
-                    'febrero',
-                    'marzo',
-                    'abril',
-                    'mayo',
-                    'junio',
-                    'julio',
-                    'agosto',
-                    'septiembre',
-                    'octubre',
-                    'noviembre',
-                    'diciembre',
-                  ];
-                  return `${day} de ${months[date.getMonth()]}`;
-                };
-
-                return `Semana del ${formatDate(weekStart)} al ${formatDate(weekEnd)}`;
-              };
-
-              // Group classes by week
-              const groupedByWeek: Record<string, any[]> = {};
-              allClasses.forEach((c) => {
-                const weekKey = getWeekLabel(c.class_number, currentDocument?.start_date || '');
-                if (!groupedByWeek[weekKey]) {
-                  groupedByWeek[weekKey] = [];
-                }
-                groupedByWeek[weekKey].push(c);
-              });
-
-              return Object.entries(groupedByWeek).map(([weekLabel, classes]) => (
-                <div key={weekLabel} className="space-y-3">
-                  <h4 className="body-2-medium text-[#47566C] text-sm">{weekLabel}</h4>
-                  <div className="space-y-2">
-                    {classes.map((c: any, idx: number) => (
-                      <div
-                        key={`${c.class_number}-${c.subject_id}-${idx}`}
-                        className="fill-primary rounded-xl p-3 space-y-2"
-                      >
-                        <input
-                          type="text"
-                          value={c.title || ''}
-                          onChange={(e) => {
-                            // Update local state immediately for better UX
-                            const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
-                            if (subjectsData[c.subject_id] && subjectsData[c.subject_id].class_plan) {
-                              const classItem = subjectsData[c.subject_id].class_plan.find(
-                                (item: any) => item.class_number === c.class_number,
-                              );
-                              if (classItem) {
-                                classItem.title = e.target.value;
-                                setCurrentDocument({
-                                  ...currentDocument,
-                                  subjects_data: subjectsData,
-                                } as any);
-                              }
-                            }
-                          }}
-                          onBlur={(e) => {
-                            handleSaveClassTitle(c.subject_id, c.class_number, e.target.value);
-                          }}
-                          className="w-full body-2-medium text-[#10182B] text-sm bg-transparent border-0 focus:outline-none"
+                ) : (
+                  <div>
+                    {editingContent.strategy !== undefined ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingContent.strategy}
+                          onChange={(e) => handleContentEdit('strategy', e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg body-2-regular text-secondary-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap"
+                          rows={12}
+                          placeholder="Editá la estrategia metodológica..."
                         />
-                        <div className="flex items-center gap-1.5">
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: subjectColors[c.subject_id] }}
-                          />
-                          <span className="body-2-regular text-[#47566C] text-xs">{c.subject_name}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveContent('strategy')}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingContent((prev) => {
+                                const newState = { ...prev };
+                                delete newState.strategy;
+                                return newState;
+                              });
+                            }}
+                            className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
                         </div>
                       </div>
-                    ))}
+                    ) : (
+                      <div
+                        className="body-2-regular text-secondary-foreground whitespace-pre-wrap cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                        onClick={() =>
+                          handleContentEdit('strategy', (currentDocument as any).methodological_strategies)
+                        }
+                        title="Clic para editar"
+                      >
+                        {hasContent ? (
+                          (currentDocument as any).methodological_strategies
+                        ) : (
+                          <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ));
-            })()}
+                )}
+              </div>
+            </div>
 
-            {subjects.length === 0 && (
-              <p className="body-2-regular text-[#47566C] text-center">No hay materias configuradas</p>
-            )}
-
-            {/* Unassigned Categories Warning */}
-            {unassignedCategories.length > 0 && (
-              <div className="mt-4 fill-primary rounded-xl p-3 border-l-4 border-yellow-500">
-                <div className="flex gap-2">
-                  <div className="text-lg">⚠️</div>
-                  <div className="flex-1">
-                    <h4 className="body-2-medium text-[#10182B] mb-1 text-xs">Conceptos sin asignar:</h4>
-                    <div className="flex flex-wrap gap-1 mb-1">
-                      {unassignedCategories.map((cat: { id: number; name: string }) => (
-                        <span key={cat.id} className="px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-800 text-xs">
-                          {cat.name}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="body-2-regular text-[#47566C] text-xs">Haz clic en + para asignar.</p>
-                  </div>
+            {/* Class Schedule Section - Fixed at bottom */}
+            {hasContent && !isGenerating && (
+              <div className="border-t border-muted p-6 bg-[#FFFFFF26] backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="headline-1-bold text-[#10182B]">Cronograma de clases por disciplinas</h3>
+                  <Button
+                    onClick={() => setIsClassesCollapsed(false)}
+                    className="flex items-center gap-2 text-primary bg-muted border-none cursor-pointer rounded-xl hover:bg-muted hover:text-primary"
+                  >
+                    Ver clases
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* Right Sidebar - Classes by Discipline */}
+        {!isClassesCollapsed && (
+          <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-muted flex items-center justify-between">
+              <h3 className="headline-1-bold text-[#10182B]">Clases por disciplinas</h3>
+              <button
+                onClick={() => setIsClassesCollapsed(true)}
+                className="cursor-pointer hover:opacity-70"
+                title="Cerrar clases"
+              >
+                <X className="w-5 h-5 text-[#10182B]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {(() => {
+                // Collect all classes from all subjects separately
+                const allClasses: any[] = [];
+                const subjectColors: Record<number, string> = {};
+                const colorPalette = [
+                  '#8B5CF6', // purple
+                  '#10B981', // green
+                  '#F59E0B', // orange
+                  '#EF4444', // red
+                  '#3B82F6', // blue
+                  '#EC4899', // pink
+                  '#14B8A6', // teal
+                ];
+
+                subjects.forEach((s: any, idx: number) => {
+                  subjectColors[s.id] = colorPalette[idx % colorPalette.length];
+                  const sData = subjectsData[s.id] || {};
+                  const classPlan = sData.class_plan || [];
+
+                  classPlan.forEach((c: any) => {
+                    // Add each class separately for each subject
+                    allClasses.push({
+                      class_number: c.class_number,
+                      title: c.title || 'Título clase',
+                      date: c.date || '',
+                      subject_id: s.id,
+                      subject_name: s.name,
+                      category_ids: c.category_ids || [],
+                    });
+                  });
+                });
+
+                // Sort classes by class_number, then by subject
+                allClasses.sort((a, b) => {
+                  if (a.class_number !== b.class_number) {
+                    return a.class_number - b.class_number;
+                  }
+                  return a.subject_name.localeCompare(b.subject_name);
+                });
+
+                // Helper function to get week date range
+                const getWeekLabel = (classNumber: number, startDate: string) => {
+                  if (!startDate) return `Semana ${Math.floor((classNumber - 1) / 4) + 1}`;
+
+                  const start = new Date(startDate);
+                  const weekNumber = Math.floor((classNumber - 1) / 4);
+                  const weekStart = new Date(start);
+                  weekStart.setDate(start.getDate() + weekNumber * 7);
+                  const weekEnd = new Date(weekStart);
+                  weekEnd.setDate(weekStart.getDate() + 6);
+
+                  const formatDate = (date: Date) => {
+                    const day = date.getDate();
+                    const months = [
+                      'enero',
+                      'febrero',
+                      'marzo',
+                      'abril',
+                      'mayo',
+                      'junio',
+                      'julio',
+                      'agosto',
+                      'septiembre',
+                      'octubre',
+                      'noviembre',
+                      'diciembre',
+                    ];
+                    return `${day} de ${months[date.getMonth()]}`;
+                  };
+
+                  return `Semana del ${formatDate(weekStart)} al ${formatDate(weekEnd)}`;
+                };
+
+                // Group classes by week
+                const groupedByWeek: Record<string, any[]> = {};
+                allClasses.forEach((c) => {
+                  const weekKey = getWeekLabel(c.class_number, currentDocument?.start_date || '');
+                  if (!groupedByWeek[weekKey]) {
+                    groupedByWeek[weekKey] = [];
+                  }
+                  groupedByWeek[weekKey].push(c);
+                });
+
+                return Object.entries(groupedByWeek).map(([weekLabel, classes]) => (
+                  <div key={weekLabel} className="space-y-3">
+                    <h4 className="body-2-medium text-[#47566C] text-sm">{weekLabel}</h4>
+                    <div className="space-y-2">
+                      {classes.map((c: any, idx: number) => (
+                        <div
+                          key={`${c.class_number}-${c.subject_id}-${idx}`}
+                          className="fill-primary rounded-xl p-3 space-y-2"
+                        >
+                          <input
+                            type="text"
+                            value={c.title || ''}
+                            onChange={(e) => {
+                              // Update local state immediately for better UX
+                              const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
+                              if (subjectsData[c.subject_id] && subjectsData[c.subject_id].class_plan) {
+                                const classItem = subjectsData[c.subject_id].class_plan.find(
+                                  (item: any) => item.class_number === c.class_number,
+                                );
+                                if (classItem) {
+                                  classItem.title = e.target.value;
+                                  setCurrentDocument({
+                                    ...currentDocument,
+                                    subjects_data: subjectsData,
+                                  } as any);
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              handleSaveClassTitle(c.subject_id, c.class_number, e.target.value);
+                            }}
+                            className="w-full body-2-medium text-[#10182B] text-sm bg-transparent border-0 focus:outline-none"
+                          />
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: subjectColors[c.subject_id] }}
+                            />
+                            <span className="body-2-regular text-[#47566C] text-xs">{c.subject_name}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+
+              {subjects.length === 0 && (
+                <p className="body-2-regular text-[#47566C] text-center">No hay materias configuradas</p>
+              )}
+
+              {/* Unassigned Categories Warning */}
+              {unassignedCategories.length > 0 && (
+                <div className="mt-4 fill-primary rounded-xl p-3 border-l-4 border-yellow-500">
+                  <div className="flex gap-2">
+                    <div className="text-lg">⚠️</div>
+                    <div className="flex-1">
+                      <h4 className="body-2-medium text-[#10182B] mb-1 text-xs">Conceptos sin asignar:</h4>
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {unassignedCategories.map((cat: { id: number; name: string }) => (
+                          <span key={cat.id} className="px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-800 text-xs">
+                            {cat.name}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="body-2-regular text-[#47566C] text-xs">Haz clic en + para asignar.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

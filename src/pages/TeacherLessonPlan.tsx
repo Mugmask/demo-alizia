@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, X, Share } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ChatBot } from '@/components/ui/ChatBot';
 import { api } from '@/services/api';
 import type { ChatMessage } from '@/types';
@@ -176,12 +177,21 @@ export function TeacherLessonPlan() {
           <ChevronLeft className="w-6 h-6 text-[#10182B]" />
         </button>
         <h1 className="title-2-bold text-[#10182B]">Planificación de clase</h1>
-        <button
-          onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
-          className="cursor-pointer hover:opacity-70"
-        >
-          <X className="w-6 h-6 text-[#10182B]" />
-        </button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => {}}
+            className="flex items-center gap-2 text-primary bg-muted border-none cursor-pointer rounded-xl hover:bg-muted hover:text-primary"
+          >
+            <Share className="w-4 h-4 text-primary" />
+            Compartir
+          </Button>
+          <button
+            onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
+            className="cursor-pointer hover:opacity-70"
+          >
+            <X className="w-6 h-6 text-[#10182B]" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden p-6 gap-6">
