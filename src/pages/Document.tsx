@@ -39,6 +39,13 @@ export function Document() {
     classNumber: number;
     value: string;
   } | null>(null);
+  const [editingStrategyType, setEditingStrategyType] = useState(false);
+
+  const STRATEGY_TYPE_OPTIONS = [
+    { value: 'Proyecto', label: 'Proyecto' },
+    { value: 'Taller/laboratorio', label: 'Taller/laboratorio' },
+    { value: 'Ateneo/Debate', label: 'Ateneo/Debate' },
+  ];
 
   useEffect(() => {
     loadDocument();
@@ -330,23 +337,13 @@ export function Document() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <h2
-                    className={`headline-1-bold text-[#10182B] ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors' : ''}`}
-                    onClick={!isReadOnly ? () => handleContentEdit('title', currentDocument.name) : undefined}
-                    title={!isReadOnly ? 'Clic para editar' : ''}
-                  >
-                    {currentDocument.name}
-                  </h2>
-                  {!isReadOnly && (
-                    <button
-                      onClick={() => handleContentEdit('title', currentDocument.name)}
-                      className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
-                    >
-                      Editar
-                    </button>
-                  )}
-                </div>
+                <h2
+                  className={`headline-1-bold text-[#10182B] ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors' : ''}`}
+                  onClick={!isReadOnly ? () => handleContentEdit('title', currentDocument.name) : undefined}
+                  title={!isReadOnly ? 'Clic para editar' : ''}
+                >
+                  {currentDocument.name}
+                </h2>
               )}
             </div>
             <div className="flex items-center gap-2 text-[#47566C] text-sm">
@@ -371,110 +368,10 @@ export function Document() {
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {/* Methodological Strategy Section */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
-                    {hasContent && (currentDocument as any).methodological_strategies?.type && (
-                      <p className="body-2-regular text-[#47566C] text-sm mt-1">
-                        {typeof (currentDocument as any).methodological_strategies.type === 'string'
-                          ? (currentDocument as any).methodological_strategies.type
-                          : (currentDocument as any).methodological_strategies.type?.type ||
-                            JSON.stringify((currentDocument as any).methodological_strategies.type)}
-                      </p>
-                    )}
-                  </div>
-                  {hasContent && !isGenerating && !isReadOnly && (
-                    <button
-                      onClick={() =>
-                        handleContentEdit('strategy', (currentDocument as any).methodological_strategies.context)
-                      }
-                      className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
-                    >
-                      Editar
-                    </button>
-                  )}
-                </div>
-                {isGenerating ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                    <p className="body-2-regular text-[#47566C]">Generando contenido con IA...</p>
-                  </div>
-                ) : (
-                  <div>
-                    {editingContent.strategy !== undefined && !isReadOnly ? (
-                      <div className="space-y-2">
-                        <textarea
-                          value={editingContent.strategy}
-                          onChange={(e) => handleContentEdit('strategy', e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded-lg body-2-regular text-secondary-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap"
-                          rows={12}
-                          placeholder="Editá la estrategia metodológica..."
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleSaveContent('strategy')}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
-                          >
-                            Guardar
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingContent((prev) => {
-                                const newState = { ...prev };
-                                delete newState.strategy;
-                                return newState;
-                              });
-                            }}
-                            className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 cursor-pointer"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className={`body-2-regular text-secondary-foreground whitespace-pre-wrap ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors' : 'p-2'}`}
-                        onClick={
-                          !isReadOnly
-                            ? () => handleContentEdit('strategy', (currentDocument as any).methodological_strategies)
-                            : undefined
-                        }
-                        title={!isReadOnly ? 'Clic para editar' : ''}
-                      >
-                        {hasContent ? (
-                          typeof (currentDocument as any).methodological_strategies === 'string' ? (
-                            (currentDocument as any).methodological_strategies
-                          ) : (
-                            (currentDocument as any).methodological_strategies?.context ||
-                            (currentDocument as any).methodological_strategies?.type ||
-                            JSON.stringify((currentDocument as any).methodological_strategies)
-                          )
-                        ) : (
-                          <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Separator */}
-                <div className="border-t border-gray-200 my-6"></div>
-
                 {/* Eje Problemático Section */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="headline-1-bold text-[#10182B]">Eje problemático</h3>
-                    {hasContent && !isGenerating && !isReadOnly && (
-                      <button
-                        onClick={() => handleContentEdit('problem_edge', (currentDocument as any).problem_edge || '')}
-                        className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
-                      >
-                        Editar
-                      </button>
-                    )}
-                  </div>
+                  <h3 className="headline-1-bold text-[#10182B]">Eje problemático</h3>
                   {isGenerating ? (
                     <div className="flex flex-col items-center justify-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
@@ -537,19 +434,131 @@ export function Document() {
                 {/* Separator */}
                 <div className="border-t border-gray-200 my-6"></div>
 
-                {/* Criterios de Evaluación Section */}
+                {/* Estrategia Metodológica Section */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="headline-1-bold text-[#10182B]">Criterios de evaluación</h3>
-                    {hasContent && !isGenerating && !isReadOnly && (
-                      <button
-                        onClick={() => handleContentEdit('eval_criteria', (currentDocument as any).eval_criteria || '')}
-                        className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
-                      >
-                        Editar
-                      </button>
+                  <div>
+                    <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
+                    {hasContent && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-1 h-5 bg-primary rounded-full" />
+                        {editingStrategyType && !isReadOnly ? (
+                          <select
+                            value={
+                              typeof (currentDocument as any).methodological_strategies?.type === 'string'
+                                ? (currentDocument as any).methodological_strategies.type
+                                : (currentDocument as any).methodological_strategies?.type?.type || ''
+                            }
+                            onChange={async (e) => {
+                              const newType = e.target.value;
+                              try {
+                                const updatedStrategies = {
+                                  ...(currentDocument as any).methodological_strategies,
+                                  type: newType,
+                                };
+                                await api.documents.update(docId, { methodological_strategies: updatedStrategies });
+                                setCurrentDocument({
+                                  ...currentDocument,
+                                  methodological_strategies: updatedStrategies,
+                                } as any);
+                              } catch (error) {
+                                console.error('Error saving strategy type:', error);
+                              }
+                              setEditingStrategyType(false);
+                            }}
+                            onBlur={() => setEditingStrategyType(false)}
+                            className="font-semibold text-[#10182B] bg-transparent border-b-2 border-primary focus:outline-none cursor-pointer"
+                            autoFocus
+                          >
+                            {STRATEGY_TYPE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span
+                            className={`font-semibold text-[#10182B] ${!isReadOnly ? 'cursor-pointer hover:opacity-70' : ''}`}
+                            onClick={!isReadOnly ? () => setEditingStrategyType(true) : undefined}
+                            title={!isReadOnly ? 'Clic para editar' : ''}
+                          >
+                            {typeof (currentDocument as any).methodological_strategies?.type === 'string'
+                              ? (currentDocument as any).methodological_strategies.type
+                              : (currentDocument as any).methodological_strategies?.type?.type || 'Proyecto'}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
+                  {isGenerating ? (
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                      <p className="body-2-regular text-[#47566C]">Generando contenido con IA...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {editingContent.strategy !== undefined && !isReadOnly ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={editingContent.strategy}
+                            onChange={(e) => handleContentEdit('strategy', e.target.value)}
+                            className="w-full p-3 border border-gray-300 rounded-lg body-2-regular text-secondary-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap"
+                            rows={12}
+                            placeholder="Editá la estrategia metodológica..."
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleSaveContent('strategy')}
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingContent((prev) => {
+                                  const newState = { ...prev };
+                                  delete newState.strategy;
+                                  return newState;
+                                });
+                              }}
+                              className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className={`body-2-regular text-secondary-foreground whitespace-pre-wrap ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors' : 'p-2'}`}
+                          onClick={
+                            !isReadOnly
+                              ? () => handleContentEdit('strategy', (currentDocument as any).methodological_strategies)
+                              : undefined
+                          }
+                          title={!isReadOnly ? 'Clic para editar' : ''}
+                        >
+                          {hasContent ? (
+                            typeof (currentDocument as any).methodological_strategies === 'string' ? (
+                              (currentDocument as any).methodological_strategies
+                            ) : (
+                              (currentDocument as any).methodological_strategies?.context ||
+                              (currentDocument as any).methodological_strategies?.type ||
+                              JSON.stringify((currentDocument as any).methodological_strategies)
+                            )
+                          ) : (
+                            <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Separator */}
+                <div className="border-t border-gray-200 my-6"></div>
+
+                {/* Criterios de Evaluación Section */}
+                <div className="space-y-4">
+                  <h3 className="headline-1-bold text-[#10182B]">Criterios de evaluación</h3>
                   {isGenerating ? (
                     <div className="flex flex-col items-center justify-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
@@ -589,7 +598,7 @@ export function Document() {
                         </div>
                       ) : (
                         <div
-                          className={`body-2-regular text-secondary-foreground whitespace-pre-wrap ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors' : 'p-2'}`}
+                          className={`body-2-regular text-secondary-foreground ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors' : 'p-2'}`}
                           onClick={
                             !isReadOnly
                               ? () => handleContentEdit('eval_criteria', (currentDocument as any).eval_criteria)
@@ -598,7 +607,24 @@ export function Document() {
                           title={!isReadOnly ? 'Clic para editar' : ''}
                         >
                           {hasContent ? (
-                            (currentDocument as any).eval_criteria
+                            <ul className="space-y-2">
+                              {((currentDocument as any).eval_criteria || '')
+                                .split(/\\n|\n/)
+                                .filter((line: string) => line.trim())
+                                .map((line: string, index: number) => {
+                                  const trimmedLine = line.trim();
+                                  const isBullet = trimmedLine.startsWith('-');
+                                  const content = isBullet ? trimmedLine.slice(1).trim() : trimmedLine;
+                                  return (
+                                    <li key={index} className="flex items-start gap-2">
+                                      {isBullet && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                                      )}
+                                      <span className={isBullet ? '' : 'ml-3.5'}>{content}</span>
+                                    </li>
+                                  );
+                                })}
+                            </ul>
                           ) : (
                             <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
                           )}
@@ -730,66 +756,84 @@ export function Document() {
                   <div key={weekLabel} className="space-y-3">
                     <h4 className="body-2-medium text-[#47566C] text-sm">{weekLabel}</h4>
                     <div className="space-y-2">
-                      {classes.map((c: any, idx: number) => (
-                        <div
-                          key={`${c.class_number}-${c.subject_id}-${idx}`}
-                          className="fill-primary rounded-xl p-3 space-y-2"
-                        >
-                          {editingClassTitle &&
-                          editingClassTitle.subjectId === c.subject_id &&
-                          editingClassTitle.classNumber === c.class_number ? (
-                            <input
-                              type="text"
-                              value={c.title || ''}
-                              onChange={(e) => {
-                                // Update local state immediately for better UX
-                                const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
-                                if (subjectsData[c.subject_id] && subjectsData[c.subject_id].class_plan) {
-                                  const classItem = subjectsData[c.subject_id].class_plan.find(
-                                    (item: any) => item.class_number === c.class_number,
+                      {classes.map((c: any, idx: number) => {
+                        const getObjective = () => {
+                          const sData = (currentDocument as any).subjects_data || {};
+                          const subjectData = sData[c.subject_id] || {};
+                          const classPlan = subjectData.class_plan || [];
+                          const classItem = classPlan.find((item: any) => item.class_number === c.class_number);
+                          return classItem?.objective || '...';
+                        };
+
+                        return (
+                          <div
+                            key={`${c.class_number}-${c.subject_id}-${idx}`}
+                            className="bg-[#F3F0FF] rounded-2xl p-4"
+                          >
+                            {/* Title */}
+                            {editingClassTitle &&
+                            editingClassTitle.subjectId === c.subject_id &&
+                            editingClassTitle.classNumber === c.class_number ? (
+                              <input
+                                type="text"
+                                value={c.title || ''}
+                                onChange={(e) => {
+                                  const sDataCopy = JSON.parse(
+                                    JSON.stringify((currentDocument as any).subjects_data),
                                   );
-                                  if (classItem) {
-                                    classItem.title = e.target.value;
-                                    setCurrentDocument({
-                                      ...currentDocument,
-                                      subjects_data: subjectsData,
-                                    } as any);
+                                  if (sDataCopy[c.subject_id] && sDataCopy[c.subject_id].class_plan) {
+                                    const classItem = sDataCopy[c.subject_id].class_plan.find(
+                                      (item: any) => item.class_number === c.class_number,
+                                    );
+                                    if (classItem) {
+                                      classItem.title = e.target.value;
+                                      setCurrentDocument({
+                                        ...currentDocument,
+                                        subjects_data: sDataCopy,
+                                      } as any);
+                                    }
                                   }
-                                }
-                              }}
-                              onBlur={() => {
-                                handleSaveClassTitle(c.subject_id, c.class_number, c.title || '');
-                                setEditingClassTitle(null);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                }}
+                                onBlur={() => {
                                   handleSaveClassTitle(c.subject_id, c.class_number, c.title || '');
                                   setEditingClassTitle(null);
-                                } else if (e.key === 'Escape') {
-                                  setEditingClassTitle(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveClassTitle(c.subject_id, c.class_number, c.title || '');
+                                    setEditingClassTitle(null);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingClassTitle(null);
+                                  }
+                                }}
+                                className="w-full text-[#10182B] font-semibold text-sm bg-transparent border-b-2 border-primary focus:outline-none mb-2"
+                                placeholder=""
+                                autoFocus
+                              />
+                            ) : (
+                              <p
+                                className={`text-[#10182B] font-semibold text-sm mb-2 ${!isReadOnly ? 'cursor-pointer hover:opacity-70' : ''}`}
+                                onClick={
+                                  !isReadOnly
+                                    ? () =>
+                                        setEditingClassTitle({
+                                          subjectId: c.subject_id,
+                                          classNumber: c.class_number,
+                                        })
+                                    : undefined
                                 }
-                              }}
-                              className="w-full body-2-medium text-[#10182B] text-sm bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 px-1 py-0"
-                              placeholder=""
-                              autoFocus
-                            />
-                          ) : (
-                            <div
-                              className="w-full body-2-medium text-[#10182B] text-sm cursor-pointer hover:bg-gray-50 px-1 py-0 rounded transition-colors whitespace-pre-wrap"
-                              onClick={() =>
-                                setEditingClassTitle({ subjectId: c.subject_id, classNumber: c.class_number })
-                              }
-                              title="Clic para editar"
-                            >
-                              {c.title || 'Título clase'}
-                            </div>
-                          )}
-                          <div className="space-y-1">
-                            <div className="flex items-start gap-2">
-                              <span className="body-2-medium text-[#10182B] text-xs font-semibold">Objetivo:</span>
-                              {editingLearningObjective &&
-                              editingLearningObjective.subjectId === c.subject_id &&
-                              editingLearningObjective.classNumber === c.class_number ? (
+                                title={!isReadOnly ? 'Clic para editar' : ''}
+                              >
+                                {c.title || 'Título clase'}
+                              </p>
+                            )}
+
+                            {/* Objective */}
+                            {editingLearningObjective &&
+                            editingLearningObjective.subjectId === c.subject_id &&
+                            editingLearningObjective.classNumber === c.class_number ? (
+                              <div className="mb-3">
+                                <span className="text-primary font-medium text-sm">Objetivo: </span>
                                 <textarea
                                   value={editingLearningObjective.value}
                                   onChange={(e) => {
@@ -811,55 +855,43 @@ export function Document() {
                                       setEditingLearningObjective(null);
                                     }
                                   }}
-                                  className="flex-1 body-2-regular text-[#47566C] text-xs bg-transparent border-b border-blue-500 focus:outline-none focus:border-blue-600 px-1 py-0 resize-none"
-                                  rows={2}
+                                  className="w-full text-[#47566C] text-sm bg-transparent border-b border-primary focus:outline-none resize-none mt-1"
+                                  rows={3}
                                   placeholder=""
                                   autoFocus
-                                  style={{ minHeight: 'auto' }}
                                 />
-                              ) : (
-                                <div
-                                  className="flex-1 body-2-regular text-[#47566C] text-xs cursor-pointer hover:bg-gray-50 px-1 py-0 rounded transition-colors whitespace-pre-wrap"
-                                  onClick={() =>
-                                    setEditingLearningObjective({
-                                      subjectId: c.subject_id,
-                                      classNumber: c.class_number,
-                                      value: (() => {
-                                        const subjectsData = (currentDocument as any).subjects_data || {};
-                                        const subjectData = subjectsData[c.subject_id] || {};
-                                        const classPlan = subjectData.class_plan || [];
-                                        const classItem = classPlan.find(
-                                          (item: any) => item.class_number === c.class_number,
-                                        );
-                                        return classItem?.objective || '';
-                                      })(),
-                                    })
-                                  }
-                                  title="Clic para editar"
-                                >
-                                  {/* Show the actual objectives value from the current document state */}
-                                  {(() => {
-                                    const subjectsData = (currentDocument as any).subjects_data || {};
-                                    const subjectData = subjectsData[c.subject_id] || {};
-                                    const classPlan = subjectData.class_plan || [];
-                                    const classItem = classPlan.find(
-                                      (item: any) => item.class_number === c.class_number,
-                                    );
-                                    return classItem?.objective || '...';
-                                  })()}
-                                </div>
-                              )}
+                              </div>
+                            ) : (
+                              <p
+                                className={`text-sm mb-3 leading-relaxed ${!isReadOnly ? 'cursor-pointer hover:opacity-70' : ''}`}
+                                onClick={
+                                  !isReadOnly
+                                    ? () =>
+                                        setEditingLearningObjective({
+                                          subjectId: c.subject_id,
+                                          classNumber: c.class_number,
+                                          value: getObjective(),
+                                        })
+                                    : undefined
+                                }
+                                title={!isReadOnly ? 'Clic para editar' : ''}
+                              >
+                                <span className="text-primary font-medium">Objetivo: </span>
+                                <span className="text-[#47566C]">{getObjective()}</span>
+                              </p>
+                            )}
+
+                            {/* Subject indicator */}
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{ backgroundColor: subjectColors[c.subject_id] }}
+                              />
+                              <span className="text-[#47566C] text-sm">{c.subject_name}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 pt-1">
-                            <div
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: subjectColors[c.subject_id] }}
-                            />
-                            <span className="body-2-regular text-[#47566C] text-xs">{c.subject_name}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ));

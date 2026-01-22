@@ -33,7 +33,7 @@ export function TeacherPlanWizard() {
   } = useStore();
 
   // Get the current course subject from the store using the URL param
-  const currentCourseSubject = courseSubjects.find(cs => cs.id === courseSubjectId);
+  const currentCourseSubject = courseSubjects.find((cs) => cs.id === courseSubjectId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentMoment, setCurrentMoment] = useState<string>('');
@@ -58,7 +58,7 @@ export function TeacherPlanWizard() {
         // Get area_id from subject
         const subject = subjects.find((s) => s.id === currentCourseSubject?.subject_id);
         const areaId = subject?.area_id;
-        const fontsData = await api.fonts.getAll(areaId) as Font[];
+        const fontsData = (await api.fonts.getAll(areaId)) as Font[];
         setFonts(fontsData);
       } catch (error) {
         console.error('Error loading fonts:', error);
@@ -149,7 +149,8 @@ export function TeacherPlanWizard() {
   ];
 
   const allMomentsHaveActivities = momentTypes.every((moment) => {
-    const activitiesList = lessonWizardData.moments[moment.key as keyof typeof lessonWizardData.moments].activities || [];
+    const activitiesList =
+      lessonWizardData.moments[moment.key as keyof typeof lessonWizardData.moments].activities || [];
     return activitiesList.length > 0;
   });
 
@@ -195,7 +196,7 @@ export function TeacherPlanWizard() {
                     value={lessonWizardData.objective}
                     onChange={(e) => updateLessonWizardData({ objective: e.target.value })}
                     placeholder="Ingresa el objetivo de la clase..."
-                    className="min-h-[100px] resize-none"
+                    className="min-h-25 resize-none"
                   />
                 </div>
 
@@ -290,7 +291,7 @@ export function TeacherPlanWizard() {
                 </div>
 
                 {/* Right column - Customization Panel */}
-                <div className="w-80 flex-shrink-0">
+                <div className="w-80 shrink-0">
                   <CustomizationPanel
                     customInstruction={lessonWizardData.customInstruction}
                     onCustomInstructionChange={(value) => updateLessonWizardData({ customInstruction: value })}
