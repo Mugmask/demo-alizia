@@ -178,7 +178,7 @@ export function TeacherCourseSubject() {
 
             <CourseInfo
               fields={[
-                { label: 'INSTITUCIÓN', value: 'IFD. N°13' },
+                { label: 'INSTITUCIÓN', value: 'Escuela DEMO' },
                 { label: 'ÁREA', value: subjectArea?.name || 'N/A' },
                 { label: 'NIVEL', value: 'Secundaria' },
                 { label: 'TURNO', value: 'Mañana' },

@@ -8,9 +8,10 @@ interface ActivityCardProps {
   description: string;
   badgeText?: string;
   onClick: () => void;
+  icon?: React.ReactNode;
 }
 
-export function ActivityCard({ title, subtitle, description, badgeText = 'Activo', onClick }: ActivityCardProps) {
+export function ActivityCard({ title, subtitle, description, badgeText = 'Activo', onClick, icon }: ActivityCardProps) {
   return (
     <div
       className="cursor-pointer activity-card-shadow transition-all fill-primary border-[#E4E8EF] p-4 group rounded-3xl"
@@ -24,7 +25,10 @@ export function ActivityCard({ title, subtitle, description, badgeText = 'Activo
           </Badge>
         </div>
 
-        <h3 className="title-3-emphasized text-[#10182B]">{title}</h3>
+        <div className="flex items-center gap-3">
+          {icon && <div className="text-primary">{icon}</div>}
+          <h3 className="title-3-emphasized text-[#10182B]">{title}</h3>
+        </div>
 
         <p className="body-2-regular text-secondary-foreground">{description}</p>
 

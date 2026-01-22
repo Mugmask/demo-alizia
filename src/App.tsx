@@ -11,6 +11,8 @@ import { Document } from './pages/Document';
 import { TeacherCourseSubject } from './pages/TeacherCourseSubject';
 import { TeacherPlanWizard } from './pages/TeacherPlanWizard';
 import { TeacherLessonPlan } from './pages/TeacherLessonPlan';
+import { Resources } from './pages/Resources';
+import { ResourceEditor } from './pages/ResourceEditor';
 import { api } from './services/api';
 
 function App() {
@@ -26,7 +28,7 @@ function App() {
     setDocuments,
     setCourseSubjects,
     setMomentTypes,
-    setActivities,
+    setActivitiesByMoment,
   } = useStore();
 
   useEffect(() => {
@@ -47,7 +49,7 @@ function App() {
         documents,
         courseSubjects,
         momentTypes,
-        activities,
+        activitiesByMoment,
       ] = await Promise.all([
         api.courses.getAll(),
         api.areas.getAll(),
@@ -70,7 +72,7 @@ function App() {
       setDocuments(documents as any);
       setCourseSubjects(courseSubjects as any);
       setMomentTypes(momentTypes as any);
-      setActivities(activities as any);
+      setActivitiesByMoment(activitiesByMoment as any);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -87,6 +89,8 @@ function App() {
           <Route path="/curso/:id/crear" element={<Wizard />} />
           <Route path="/doc/:id" element={<Document />} />
           <Route path="/teacher/plan/:id" element={<TeacherLessonPlan />} />
+          <Route path="/recursos/:type/new" element={<ResourceEditor />} />
+          <Route path="/recursos/:id" element={<ResourceEditor />} />
           <Route
             path="*"
             element={
@@ -107,6 +111,7 @@ function App() {
                   <Route path="/curso/:id" element={<Course />} />
                   <Route path="/teacher/cs/:id" element={<TeacherCourseSubject />} />
                   <Route path="/teacher/planificar/:csId/:classNumber" element={<TeacherPlanWizard />} />
+                  <Route path="/recursos" element={<Resources />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </MainLayout>

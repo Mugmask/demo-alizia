@@ -105,6 +105,8 @@ export const api = {
   },
   activities: {
     getAll: () => fetchData('/activities'),
+    recommend: (objective: string, categoryIds: number[]) =>
+      postData('/activities/recommend', { objective, category_ids: categoryIds }),
   },
   fonts: {
     getAll: (areaId?: number) => fetchData(`/fonts${areaId ? `?area_id=${areaId}` : ''}`),
@@ -120,5 +122,14 @@ export const api = {
   },
   chat: {
     sendMessage: (endpoint: string, data: any) => postData(endpoint, data),
+  },
+  resources: {
+    getAll: (userId?: number) => fetchData(`/resources${userId ? `?user_id=${userId}` : ''}`),
+    getById: (id: number) => fetchData(`/resources/${id}`),
+    create: (data: { title: string; resource_type: string; user_id: number }) =>
+      postData('/resources', data),
+    update: (id: number, data: { title?: string; content?: string }) =>
+      patchData(`/resources/${id}`, data),
+    delete: (id: number) => deleteData(`/resources/${id}`),
   },
 };

@@ -23,7 +23,7 @@ export function TeacherLessonPlan() {
     clearTeacherChatHistory,
     isGenerating,
     setIsGenerating,
-    activities,
+    activitiesByMoment,
   } = useStore();
 
   useEffect(() => {
@@ -154,8 +154,14 @@ export function TeacherLessonPlan() {
   const getActivityNames = (momentKey: string) => {
     const moments = currentLessonPlan.moments as any;
     const activityIds = moments?.[momentKey]?.activities || [];
+    // Get all activities from all moment types for lookup
+    const allActivities = [
+      ...activitiesByMoment.apertura,
+      ...activitiesByMoment.desarrollo,
+      ...activitiesByMoment.cierre,
+    ];
     return activityIds.map((actId: number) => {
-      const act = activities.find((a) => a.id === actId);
+      const act = allActivities.find((a) => a.id === actId);
       return act ? act.name : `Act ${actId}`;
     });
   };

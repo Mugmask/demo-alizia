@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, X, Plus } from 'lucide-react';
+import { ArrowRight, X, Sparkles } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CustomizationPanel } from '@/components/ui/CustomizationPanel';
 import { api } from '@/services/api';
-import type { Font } from '@/types';
+import type { Font, Activity, ActivityRecommendation } from '@/types';
 
 export function TeacherPlanWizard() {
   const { csId, classNumber } = useParams();
@@ -24,7 +23,10 @@ export function TeacherPlanWizard() {
     updateLessonWizardData,
     resetLessonWizardData,
     categories,
-    activities,
+    activitiesByMoment,
+    activityRecommendations,
+    setActivitiesByMoment,
+    setActivityRecommendations,
     coordinationStatus,
     fonts,
     setFonts,
@@ -32,12 +34,9 @@ export function TeacherPlanWizard() {
     subjects,
   } = useStore();
 
-  // Get the current course subject from the store using the URL param
   const currentCourseSubject = courseSubjects.find(cs => cs.id === courseSubjectId);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentMoment, setCurrentMoment] = useState<string>('');
-  const [selectedActivitiesInModal, setSelectedActivitiesInModal] = useState<number[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
 
   useEffect(() => {
     const state = location.state as any;
@@ -55,7 +54,6 @@ export function TeacherPlanWizard() {
   useEffect(() => {
     const fetchFonts = async () => {
       try {
-        // Get area_id from subject
         const subject = subjects.find((s) => s.id === currentCourseSubject?.subject_id);
         const areaId = subject?.area_id;
         const fontsData = await api.fonts.getAll(areaId) as Font[];
@@ -67,39 +65,75 @@ export function TeacherPlanWizard() {
     fetchFonts();
   }, [courseSubjectId, courseSubjects, subjects, setFonts]);
 
-  const openModal = (momentKey: string) => {
-    setCurrentMoment(momentKey);
-    const moment = lessonWizardData.moments[momentKey as keyof typeof lessonWizardData.moments];
-    setSelectedActivitiesInModal(moment.activities || []);
-    setIsModalOpen(true);
-  };
+  // Fetch activities grouped by moment
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const activitiesData = await api.activities.getAll();
+        setActivitiesByMoment(activitiesData as any);
+      } catch (error) {
+        console.error('Error loading activities:', error);
+      }
+    };
+    fetchActivities();
+  }, [setActivitiesByMoment]);
 
-  const handleToggleActivityInModal = (activityId: number) => {
-    setSelectedActivitiesInModal((prev) =>
-      prev.includes(activityId) ? prev.filter((id) => id !== activityId) : [...prev, activityId],
-    );
-  };
+  // Fetch AI recommendations when entering Step 2
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (lessonWizardData.step === 2 && lessonWizardData.objective && !activityRecommendations) {
+        setIsLoadingRecommendations(true);
+        try {
+          const recommendations = await api.activities.recommend(
+            lessonWizardData.objective,
+            lessonWizardData.categoryIds
+          ) as ActivityRecommendation;
+          setActivityRecommendations(recommendations);
+        } catch (error) {
+          console.error('Error loading recommendations:', error);
+        } finally {
+          setIsLoadingRecommendations(false);
+        }
+      }
+    };
+    fetchRecommendations();
+  }, [lessonWizardData.step, lessonWizardData.objective, lessonWizardData.categoryIds, activityRecommendations, setActivityRecommendations]);
 
-  const handleAddActivities = () => {
-    if (currentMoment) {
-      const moment = lessonWizardData.moments[currentMoment as keyof typeof lessonWizardData.moments];
-      updateLessonWizardData({
-        moments: {
-          ...lessonWizardData.moments,
-          [currentMoment]: { ...moment, activities: selectedActivitiesInModal },
-        },
-      });
-    }
-    setIsModalOpen(false);
-  };
-
-  const removeActivity = (momentKey: string, activityId: number) => {
-    const moment = lessonWizardData.moments[momentKey as keyof typeof lessonWizardData.moments];
-    const newActivities = moment.activities.filter((id) => id !== activityId);
+  const handleSelectAperturaActivity = (activityId: number) => {
     updateLessonWizardData({
       moments: {
         ...lessonWizardData.moments,
-        [momentKey]: { ...moment, activities: newActivities },
+        apertura: { activities: [activityId] },
+      },
+    });
+  };
+
+  const handleSelectCierreActivity = (activityId: number) => {
+    updateLessonWizardData({
+      moments: {
+        ...lessonWizardData.moments,
+        cierre: { activities: [activityId] },
+      },
+    });
+  };
+
+  const handleToggleDesarrolloActivity = (activityId: number) => {
+    const currentActivities = lessonWizardData.moments.desarrollo.activities || [];
+    let newActivities: number[];
+
+    if (currentActivities.includes(activityId)) {
+      newActivities = currentActivities.filter((id: number) => id !== activityId);
+    } else {
+      if (currentActivities.length >= 3) {
+        return; // Don't allow more than 3
+      }
+      newActivities = [...currentActivities, activityId];
+    }
+
+    updateLessonWizardData({
+      moments: {
+        ...lessonWizardData.moments,
+        desarrollo: { activities: newActivities },
       },
     });
   };
@@ -130,6 +164,7 @@ export function TeacherPlanWizard() {
     try {
       const createdPlan = await api.lessonPlans.create(data);
       resetLessonWizardData();
+      setActivityRecommendations(null);
       navigate(`/teacher/plan/${(createdPlan as any).id}`);
     } catch (error) {
       console.error('Error creating lesson plan:', error);
@@ -142,16 +177,91 @@ export function TeacherPlanWizard() {
   const documentCategoryIds = coordinationStatus?.category_ids || [];
   const availableCategories = categories.filter((c) => documentCategoryIds.includes(c.id));
 
-  const momentTypes = [
-    { key: 'apertura', name: 'Apertura/Motivacion', description: 'Momento inicial de la clase' },
-    { key: 'desarrollo', name: 'Desarrollo/Construccion', description: 'Momento central de la clase' },
-    { key: 'cierre', name: 'Cierre/Metacognicion', description: 'Momento final de reflexion' },
-  ];
+  // Check if all moments have required activities
+  const aperturaSelected = (lessonWizardData.moments.apertura.activities || []).length === 1;
+  const desarrolloSelected = (lessonWizardData.moments.desarrollo.activities || []).length >= 1;
+  const cierreSelected = (lessonWizardData.moments.cierre.activities || []).length === 1;
+  const allMomentsValid = aperturaSelected && desarrolloSelected && cierreSelected;
 
-  const allMomentsHaveActivities = momentTypes.every((moment) => {
-    const activitiesList = lessonWizardData.moments[moment.key as keyof typeof lessonWizardData.moments].activities || [];
-    return activitiesList.length > 0;
-  });
+  const isRecommended = (momentType: string, activityId: number): boolean => {
+    if (!activityRecommendations) return false;
+    if (momentType === 'apertura') return activityRecommendations.apertura_recommended_id === activityId;
+    if (momentType === 'cierre') return activityRecommendations.cierre_recommended_id === activityId;
+    if (momentType === 'desarrollo') return activityRecommendations.desarrollo_recommended_ids?.includes(activityId);
+    return false;
+  };
+
+  const renderActivityCard = (activity: Activity, momentType: 'apertura' | 'cierre', isSelected: boolean) => (
+    <label
+      key={activity.id}
+      className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
+        isSelected
+          ? 'border-primary bg-primary/5'
+          : 'border-gray-200 hover:border-gray-300 bg-white'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <input
+          type="radio"
+          name={`${momentType}-activity`}
+          checked={isSelected}
+          onChange={() => momentType === 'apertura' ? handleSelectAperturaActivity(activity.id) : handleSelectCierreActivity(activity.id)}
+          className="mt-1 w-4 h-4 text-primary cursor-pointer"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-secondary-foreground">{activity.name}</span>
+            {isRecommended(momentType, activity.id) && (
+              <Badge variant="default" className="bg-amber-500 hover:bg-amber-500 text-white text-xs gap-1">
+                <Sparkles className="w-3 h-3" />
+                Recomendada
+              </Badge>
+            )}
+          </div>
+          {activity.description && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{activity.description}</p>
+          )}
+        </div>
+      </div>
+    </label>
+  );
+
+  const renderDesarrolloActivityCard = (activity: Activity, isSelected: boolean, isDisabled: boolean) => (
+    <label
+      key={activity.id}
+      className={`block p-4 rounded-xl border-2 transition-all ${
+        isDisabled && !isSelected
+          ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+          : isSelected
+          ? 'border-primary bg-primary/5 cursor-pointer'
+          : 'border-gray-200 hover:border-gray-300 bg-white cursor-pointer'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <Checkbox
+          id={`desarrollo-${activity.id}`}
+          checked={isSelected}
+          disabled={isDisabled && !isSelected}
+          onCheckedChange={() => handleToggleDesarrolloActivity(activity.id)}
+          className="mt-1 cursor-pointer"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-secondary-foreground">{activity.name}</span>
+            {isRecommended('desarrollo', activity.id) && (
+              <Badge variant="default" className="bg-amber-500 hover:bg-amber-500 text-white text-xs gap-1">
+                <Sparkles className="w-3 h-3" />
+                Recomendada
+              </Badge>
+            )}
+          </div>
+          {activity.description && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{activity.description}</p>
+          )}
+        </div>
+      </div>
+    </label>
+  );
 
   return (
     <div className="fixed inset-0 z-50 gradient-background flex flex-col">
@@ -167,6 +277,7 @@ export function TeacherPlanWizard() {
           <button
             onClick={() => {
               resetLessonWizardData();
+              setActivityRecommendations(null);
               navigate(`/teacher/cs/${courseSubjectId}`);
             }}
             className="absolute top-6 right-6 p-2 text-gray-600 hover:text-gray-900 transition-colors z-10"
@@ -241,52 +352,61 @@ export function TeacherPlanWizard() {
                 <p className="body-2-regular text-[#2C2C2C]">
                   Selecciona las actividades que se trabajaran en cada momento de la clase.
                 </p>
+                {isLoadingRecommendations && (
+                  <p className="text-sm text-primary flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 animate-pulse" />
+                    Cargando recomendaciones de IA...
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-6">
                 {/* Left column - Moments */}
                 <div className="flex-1 space-y-6">
-                  {momentTypes.map((moment) => {
-                    const selectedActivityIds =
-                      lessonWizardData.moments[moment.key as keyof typeof lessonWizardData.moments].activities || [];
-                    const selectedActivities = activities.filter((act) => selectedActivityIds.includes(act.id));
+                  {/* Apertura Section */}
+                  <div className="space-y-3 activity-card-bg rounded-2xl p-4">
+                    <div>
+                      <h3 className="body-1-medium text-secondary-foreground">Apertura/Motivacion</h3>
+                      <p className="text-sm text-muted-foreground">Selecciona 1 actividad para el inicio de la clase</p>
+                    </div>
+                    <div className="space-y-2">
+                      {activitiesByMoment.apertura.map((activity) => {
+                        const isSelected = lessonWizardData.moments.apertura.activities?.includes(activity.id);
+                        return renderActivityCard(activity, 'apertura', isSelected);
+                      })}
+                    </div>
+                  </div>
 
-                    return (
-                      <div key={moment.key} className="space-y-3 activity-card-bg rounded-2xl p-4">
-                        <h3 className="body-1-medium text-secondary-foreground">{moment.name}</h3>
+                  {/* Desarrollo Section */}
+                  <div className="space-y-3 activity-card-bg rounded-2xl p-4">
+                    <div>
+                      <h3 className="body-1-medium text-secondary-foreground">Desarrollo/Construccion</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Selecciona hasta 3 actividades ({lessonWizardData.moments.desarrollo.activities?.length || 0}/3 seleccionadas)
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {activitiesByMoment.desarrollo.map((activity) => {
+                        const isSelected = lessonWizardData.moments.desarrollo.activities?.includes(activity.id);
+                        const isDisabled = (lessonWizardData.moments.desarrollo.activities?.length || 0) >= 3;
+                        return renderDesarrolloActivityCard(activity, isSelected, isDisabled);
+                      })}
+                    </div>
+                  </div>
 
-                        {selectedActivities.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {selectedActivities.map((activity) => (
-                              <Badge
-                                key={activity.id}
-                                variant="secondary"
-                                className="flex items-center gap-1 px-3 py-1 rounded-lg fill-primary!"
-                              >
-                                {activity.name}
-                                <button
-                                  type="button"
-                                  onClick={() => removeActivity(moment.key, activity.id)}
-                                  className="ml-1 cursor-pointer"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => openModal(moment.key)}
-                          className="flex items-center gap-2 headline-2-semi-bold text-secondary-foreground transition-colors cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Agregar actividad
-                        </button>
-                      </div>
-                    );
-                  })}
+                  {/* Cierre Section */}
+                  <div className="space-y-3 activity-card-bg rounded-2xl p-4">
+                    <div>
+                      <h3 className="body-1-medium text-secondary-foreground">Cierre/Metacognicion</h3>
+                      <p className="text-sm text-muted-foreground">Selecciona 1 actividad para el cierre de la clase</p>
+                    </div>
+                    <div className="space-y-2">
+                      {activitiesByMoment.cierre.map((activity) => {
+                        const isSelected = lessonWizardData.moments.cierre.activities?.includes(activity.id);
+                        return renderActivityCard(activity, 'cierre', isSelected);
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Right column - Customization Panel */}
@@ -333,60 +453,13 @@ export function TeacherPlanWizard() {
               >
                 Anterior
               </button>
-              <Button onClick={handleCreatePlan} disabled={!allMomentsHaveActivities} className="cursor-pointer">
+              <Button onClick={handleCreatePlan} disabled={!allMomentsValid} className="cursor-pointer">
                 Planificar clase
               </Button>
             </div>
           )}
         </div>
       </div>
-
-      {/* Modal para seleccionar actividades */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Agregar actividades</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {activities.map((activity) => (
-              <div key={activity.id} className="flex items-center space-x-3">
-                <Checkbox
-                  id={`activity-${activity.id}`}
-                  checked={selectedActivitiesInModal.includes(activity.id)}
-                  onCheckedChange={() => handleToggleActivityInModal(activity.id)}
-                  className="cursor-pointer"
-                />
-                <label
-                  htmlFor={`activity-${activity.id}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  {activity.name}
-                </label>
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter className="flex-row! justify-between! items-center w-full">
-            <span className="text-sm text-muted-foreground">
-              {selectedActivitiesInModal.length}{' '}
-              {selectedActivitiesInModal.length === 1 ? 'Actividad seleccionada' : 'Actividades seleccionadas'}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                className="cursor-pointer hover:bg-transparent! hover:text-secondary-foreground!"
-                onClick={() => setIsModalOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button onClick={handleAddActivities} className="cursor-pointer">
-                Agregar
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
