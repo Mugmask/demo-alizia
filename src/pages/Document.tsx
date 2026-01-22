@@ -378,10 +378,19 @@ export function Document() {
               {/* Methodological Strategy Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
+                  <div>
+                    <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
+                    {hasContent && (currentDocument as any).methodological_strategies?.type && (
+                      <p className="body-2-regular text-[#47566C] text-sm mt-1">
+                        {(currentDocument as any).methodological_strategies.type}
+                      </p>
+                    )}
+                  </div>
                   {hasContent && !isGenerating && !isReadOnly && (
                     <button
-                      onClick={() => handleContentEdit('strategy', (currentDocument as any).methodological_strategies)}
+                      onClick={() =>
+                        handleContentEdit('strategy', (currentDocument as any).methodological_strategies.context)
+                      }
                       className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                     >
                       Editar
@@ -444,6 +453,9 @@ export function Document() {
                     )}
                   </div>
                 )}
+
+                {/* Separator */}
+                <div className="border-t border-gray-200 my-6"></div>
 
                 {/* Eje Problemático Section */}
                 <div className="space-y-4">
@@ -518,6 +530,9 @@ export function Document() {
                     </div>
                   )}
                 </div>
+
+                {/* Separator */}
+                <div className="border-t border-gray-200 my-6"></div>
 
                 {/* Criterios de Evaluación Section */}
                 <div className="space-y-4">
