@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Send, PanelRight } from 'lucide-react';
+import { Send, PanelRight, Loader2 } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 
 interface ChatBotProps {
@@ -110,6 +110,23 @@ export function ChatBot({
               </div>
             </div>
           ))}
+          {/* Loader when generating response */}
+          {isChatGenerating && (
+            <div className="flex justify-start items-end gap-2">
+              <div className="shrink-0">
+                <div className="w-8 h-8 relative">
+                  <div className="absolute inset-0 bg-linear-to-b from-white via-indigo-200 to-indigo-500 rounded-full blur-sm opacity-60"></div>
+                  <div className="absolute inset-0 bg-linear-to-b from-white via-indigo-300 to-indigo-600 rounded-full"></div>
+                </div>
+              </div>
+              <div className="max-w-[85%] rounded-2xl p-3 bg-muted text-[#10182B]">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#735FE3]" />
+                  <p className="body-2-regular text-[#10182B]">Escribiendo respuesta...</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div ref={chatEndRef} />
         </div>
       )}
