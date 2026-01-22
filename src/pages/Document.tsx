@@ -28,6 +28,12 @@ export function Document() {
   const [editingContent, setEditingContent] = useState<{ strategy?: string; title?: string }>({});
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [isClassesCollapsed, setIsClassesCollapsed] = useState(false);
+  const [editingClassTitle, setEditingClassTitle] = useState<{ subjectId: number; classNumber: number } | null>(null);
+  const [editingLearningObjective, setEditingLearningObjective] = useState<{
+    subjectId: number;
+    classNumber: number;
+    value: string;
+  } | null>(null);
 
   useEffect(() => {
     loadDocument();
@@ -125,6 +131,28 @@ export function Document() {
           } as any);
         } catch (error) {
           console.error('Error saving class title:', error);
+        }
+      }
+    }
+  };
+
+  const handleSaveLearningObjective = async (subjectId: number, classNumber: number, newObjective: string) => {
+    if (!currentDocument) return;
+
+    const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
+    if (subjectsData[subjectId] && subjectsData[subjectId].class_plan) {
+      const classItem = subjectsData[subjectId].class_plan.find((c: any) => c.class_number === classNumber);
+      if (classItem && classItem.learning_objective !== newObjective) {
+        classItem.learning_objective = newObjective;
+        try {
+          await api.documents.update(docId, { subjects_data: subjectsData });
+          // Update local state directly (like original frontend)
+          setCurrentDocument({
+            ...currentDocument,
+            subjects_data: subjectsData,
+          } as any);
+        } catch (error) {
+          console.error('Error saving learning objective:', error);
         }
       }
     }
@@ -532,36 +560,120 @@ export function Document() {
                           key={`${c.class_number}-${c.subject_id}-${idx}`}
                           className="fill-primary rounded-xl p-3 space-y-2"
                         >
-                          <textarea
-                            value={c.title || ''}
-                            onChange={(e) => {
-                              // Update local state immediately for better UX
-                              const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
-                              if (subjectsData[c.subject_id] && subjectsData[c.subject_id].class_plan) {
-                                const classItem = subjectsData[c.subject_id].class_plan.find(
-                                  (item: any) => item.class_number === c.class_number,
-                                );
-                                if (classItem) {
-                                  classItem.title = e.target.value;
-                                  setCurrentDocument({
-                                    ...currentDocument,
-                                    subjects_data: subjectsData,
-                                  } as any);
+                          {editingClassTitle &&
+                          editingClassTitle.subjectId === c.subject_id &&
+                          editingClassTitle.classNumber === c.class_number ? (
+                            <input
+                              type="text"
+                              value={c.title || ''}
+                              onChange={(e) => {
+                                // Update local state immediately for better UX
+                                const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
+                                if (subjectsData[c.subject_id] && subjectsData[c.subject_id].class_plan) {
+                                  const classItem = subjectsData[c.subject_id].class_plan.find(
+                                    (item: any) => item.class_number === c.class_number,
+                                  );
+                                  if (classItem) {
+                                    classItem.title = e.target.value;
+                                    setCurrentDocument({
+                                      ...currentDocument,
+                                      subjects_data: subjectsData,
+                                    } as any);
+                                  }
                                 }
+                              }}
+                              onBlur={() => {
+                                handleSaveClassTitle(c.subject_id, c.class_number, c.title || '');
+                                setEditingClassTitle(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveClassTitle(c.subject_id, c.class_number, c.title || '');
+                                  setEditingClassTitle(null);
+                                } else if (e.key === 'Escape') {
+                                  setEditingClassTitle(null);
+                                }
+                              }}
+                              className="w-full body-2-medium text-[#10182B] text-sm bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 px-1 py-0"
+                              placeholder=""
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              className="w-full body-2-medium text-[#10182B] text-sm cursor-pointer hover:bg-gray-50 px-1 py-0 rounded transition-colors whitespace-pre-wrap"
+                              onClick={() =>
+                                setEditingClassTitle({ subjectId: c.subject_id, classNumber: c.class_number })
                               }
-                            }}
-                            onBlur={(e) => {
-                              handleSaveClassTitle(c.subject_id, c.class_number, e.target.value);
-                            }}
-                            className="w-full body-2-medium text-[#10182B] text-sm bg-transparent border-0 focus:outline-none resize-none overflow-hidden"
-                            rows={1}
-                            style={{ minHeight: 'auto' }}
-                          />
+                              title="Clic para editar"
+                            >
+                              {c.title || 'Título clase'}
+                            </div>
+                          )}
                           <div className="space-y-1">
-                            <div className="body-2-regular text-[#47566C] text-xs">
-                              Objetivo de aprendizaje:{' '}
-                              {c.learning_objective ||
-                                'Al finalizar esta clase, los estudiantes podrán comprender y aplicar los conceptos fundamentales abordados, desarrollando las habilidades necesarias para el análisis y la resolución de problemas relacionados con el tema.'}
+                            <div className="flex items-start gap-2">
+                              <span className="body-2-medium text-[#10182B] text-xs font-semibold">Objetivo:</span>
+                              {editingLearningObjective &&
+                              editingLearningObjective.subjectId === c.subject_id &&
+                              editingLearningObjective.classNumber === c.class_number ? (
+                                <textarea
+                                  value={editingLearningObjective.value}
+                                  onChange={(e) => {
+                                    setEditingLearningObjective({
+                                      ...editingLearningObjective,
+                                      value: e.target.value,
+                                    });
+                                  }}
+                                  onBlur={() => {
+                                    handleSaveLearningObjective(
+                                      c.subject_id,
+                                      c.class_number,
+                                      editingLearningObjective.value,
+                                    );
+                                    setEditingLearningObjective(null);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') {
+                                      setEditingLearningObjective(null);
+                                    }
+                                  }}
+                                  className="flex-1 body-2-regular text-[#47566C] text-xs bg-transparent border-b border-blue-500 focus:outline-none focus:border-blue-600 px-1 py-0 resize-none"
+                                  rows={2}
+                                  placeholder=""
+                                  autoFocus
+                                  style={{ minHeight: 'auto' }}
+                                />
+                              ) : (
+                                <div
+                                  className="flex-1 body-2-regular text-[#47566C] text-xs cursor-pointer hover:bg-gray-50 px-1 py-0 rounded transition-colors whitespace-pre-wrap"
+                                  onClick={() =>
+                                    setEditingLearningObjective({
+                                      subjectId: c.subject_id,
+                                      classNumber: c.class_number,
+                                      value: (() => {
+                                        const subjectsData = (currentDocument as any).subjects_data || {};
+                                        const subjectData = subjectsData[c.subject_id] || {};
+                                        const classPlan = subjectData.class_plan || [];
+                                        const classItem = classPlan.find(
+                                          (item: any) => item.class_number === c.class_number,
+                                        );
+                                        return classItem?.learning_objective || '';
+                                      })(),
+                                    })
+                                  }
+                                  title="Clic para editar"
+                                >
+                                  {/* Show the actual learning_objective value from the current document state */}
+                                  {(() => {
+                                    const subjectsData = (currentDocument as any).subjects_data || {};
+                                    const subjectData = subjectsData[c.subject_id] || {};
+                                    const classPlan = subjectData.class_plan || [];
+                                    const classItem = classPlan.find(
+                                      (item: any) => item.class_number === c.class_number,
+                                    );
+                                    return classItem?.learning_objective || '...';
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 pt-1">
