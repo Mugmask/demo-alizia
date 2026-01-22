@@ -28,8 +28,8 @@ export function Document() {
   const [editingContent, setEditingContent] = useState<{
     strategy?: string;
     title?: string;
-    problematicAxis?: string;
-    evaluationCriteria?: string;
+    problem_edge?: string;
+    eval_criteria?: string;
   }>({});
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [isClassesCollapsed, setIsClassesCollapsed] = useState(false);
@@ -147,8 +147,8 @@ export function Document() {
     const subjectsData = JSON.parse(JSON.stringify((currentDocument as any).subjects_data));
     if (subjectsData[subjectId] && subjectsData[subjectId].class_plan) {
       const classItem = subjectsData[subjectId].class_plan.find((c: any) => c.class_number === classNumber);
-      if (classItem && classItem.learning_objective !== newObjective) {
-        classItem.learning_objective = newObjective;
+      if (classItem && classItem.objective !== newObjective) {
+        classItem.objective = newObjective;
         try {
           await api.documents.update(docId, { subjects_data: subjectsData });
           // Update local state directly (like original frontend)
@@ -177,17 +177,14 @@ export function Document() {
     }
   };
 
-  const handleContentEdit = (
-    field: 'strategy' | 'title' | 'problematicAxis' | 'evaluationCriteria',
-    content: string,
-  ) => {
+  const handleContentEdit = (field: 'strategy' | 'title' | 'problem_edge' | 'eval_criteria', content: string) => {
     setEditingContent((prev) => ({
       ...prev,
       [field]: content,
     }));
   };
 
-  const handleSaveContent = async (field: 'strategy' | 'title' | 'problematicAxis' | 'evaluationCriteria') => {
+  const handleSaveContent = async (field: 'strategy' | 'title' | 'problem_edge' | 'eval_criteria') => {
     try {
       const updatedContent = editingContent[field];
       if (!updatedContent || !currentDocument) return;
@@ -198,10 +195,10 @@ export function Document() {
         updateData = { name: updatedContent };
       } else if (field === 'strategy') {
         updateData = { methodological_strategies: updatedContent };
-      } else if (field === 'problematicAxis') {
-        updateData = { problematic_axis: updatedContent };
-      } else if (field === 'evaluationCriteria') {
-        updateData = { evaluation_criteria: updatedContent };
+      } else if (field === 'problem_edge') {
+        updateData = { problem_edge: updatedContent };
+      } else if (field === 'eval_criteria') {
+        updateData = { eval_criteria: updatedContent };
       }
 
       await api.documents.update(docId, updateData);
@@ -248,9 +245,8 @@ export function Document() {
     .filter((catId: number) => !assignedCategoryIds.has(catId))
     .map((catId: number) => ({ id: catId, name: categoryMap[catId] || `Categoría ${catId}` }));
 
-  const hasContent =
-    (currentDocument as any).methodological_strategies &&
-    (currentDocument as any).methodological_strategies.trim().length > 0;
+  const hasContent = (currentDocument as any).methodological_strategies; /* &&
+    (currentDocument as any).methodological_strategies.trim().length > 0; */
 
   return (
     <div className="h-screen flex flex-col gradient-background">
@@ -382,7 +378,10 @@ export function Document() {
                     <h3 className="headline-1-bold text-[#10182B]">Estrategia metodológica</h3>
                     {hasContent && (currentDocument as any).methodological_strategies?.type && (
                       <p className="body-2-regular text-[#47566C] text-sm mt-1">
-                        {(currentDocument as any).methodological_strategies.type}
+                        {typeof (currentDocument as any).methodological_strategies.type === 'string'
+                          ? (currentDocument as any).methodological_strategies.type
+                          : (currentDocument as any).methodological_strategies.type?.type ||
+                            JSON.stringify((currentDocument as any).methodological_strategies.type)}
                       </p>
                     )}
                   </div>
@@ -445,7 +444,13 @@ export function Document() {
                         title={!isReadOnly ? 'Clic para editar' : ''}
                       >
                         {hasContent ? (
-                          (currentDocument as any).methodological_strategies
+                          typeof (currentDocument as any).methodological_strategies === 'string' ? (
+                            (currentDocument as any).methodological_strategies
+                          ) : (
+                            (currentDocument as any).methodological_strategies?.context ||
+                            (currentDocument as any).methodological_strategies?.type ||
+                            JSON.stringify((currentDocument as any).methodological_strategies)
+                          )
                         ) : (
                           <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
                         )}
@@ -463,9 +468,7 @@ export function Document() {
                     <h3 className="headline-1-bold text-[#10182B]">Eje problemático</h3>
                     {hasContent && !isGenerating && !isReadOnly && (
                       <button
-                        onClick={() =>
-                          handleContentEdit('problematicAxis', (currentDocument as any).problematic_axis || '')
-                        }
+                        onClick={() => handleContentEdit('problem_edge', (currentDocument as any).problem_edge || '')}
                         className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                       >
                         Editar
@@ -479,18 +482,18 @@ export function Document() {
                     </div>
                   ) : (
                     <div>
-                      {editingContent.problematicAxis !== undefined && !isReadOnly ? (
+                      {editingContent.problem_edge !== undefined && !isReadOnly ? (
                         <div className="space-y-2">
                           <textarea
-                            value={editingContent.problematicAxis}
-                            onChange={(e) => handleContentEdit('problematicAxis', e.target.value)}
+                            value={editingContent.problem_edge}
+                            onChange={(e) => handleContentEdit('problem_edge', e.target.value)}
                             className="w-full p-3 border border-gray-300 rounded-lg body-2-regular text-secondary-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap"
                             rows={8}
                             placeholder="Editá el eje problemático..."
                           />
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleSaveContent('problematicAxis')}
+                              onClick={() => handleSaveContent('problem_edge')}
                               className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
                             >
                               Guardar
@@ -499,7 +502,7 @@ export function Document() {
                               onClick={() => {
                                 setEditingContent((prev) => {
                                   const newState = { ...prev };
-                                  delete newState.problematicAxis;
+                                  delete newState.problem_edge;
                                   return newState;
                                 });
                               }}
@@ -514,13 +517,13 @@ export function Document() {
                           className={`body-2-regular text-secondary-foreground whitespace-pre-wrap ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors' : 'p-2'}`}
                           onClick={
                             !isReadOnly
-                              ? () => handleContentEdit('problematicAxis', (currentDocument as any).problematic_axis)
+                              ? () => handleContentEdit('problem_edge', (currentDocument as any).problem_edge)
                               : undefined
                           }
                           title={!isReadOnly ? 'Clic para editar' : ''}
                         >
                           {hasContent ? (
-                            (currentDocument as any).problematic_axis ||
+                            (currentDocument as any).problem_edge ||
                             'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
                           ) : (
                             <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
@@ -540,9 +543,7 @@ export function Document() {
                     <h3 className="headline-1-bold text-[#10182B]">Criterios de evaluación</h3>
                     {hasContent && !isGenerating && !isReadOnly && (
                       <button
-                        onClick={() =>
-                          handleContentEdit('evaluationCriteria', (currentDocument as any).evaluation_criteria || '')
-                        }
+                        onClick={() => handleContentEdit('eval_criteria', (currentDocument as any).eval_criteria || '')}
                         className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
                       >
                         Editar
@@ -556,18 +557,18 @@ export function Document() {
                     </div>
                   ) : (
                     <div>
-                      {editingContent.evaluationCriteria !== undefined && !isReadOnly ? (
+                      {editingContent.eval_criteria !== undefined && !isReadOnly ? (
                         <div className="space-y-2">
                           <textarea
-                            value={editingContent.evaluationCriteria}
-                            onChange={(e) => handleContentEdit('evaluationCriteria', e.target.value)}
+                            value={editingContent.eval_criteria}
+                            onChange={(e) => handleContentEdit('eval_criteria', e.target.value)}
                             className="w-full p-3 border border-gray-300 rounded-lg body-2-regular text-secondary-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap"
                             rows={8}
                             placeholder="Editá los criterios de evaluación..."
                           />
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleSaveContent('evaluationCriteria')}
+                              onClick={() => handleSaveContent('eval_criteria')}
                               className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
                             >
                               Guardar
@@ -576,7 +577,7 @@ export function Document() {
                               onClick={() => {
                                 setEditingContent((prev) => {
                                   const newState = { ...prev };
-                                  delete newState.evaluationCriteria;
+                                  delete newState.eval_criteria;
                                   return newState;
                                 });
                               }}
@@ -591,18 +592,13 @@ export function Document() {
                           className={`body-2-regular text-secondary-foreground whitespace-pre-wrap ${!isReadOnly ? 'cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors' : 'p-2'}`}
                           onClick={
                             !isReadOnly
-                              ? () =>
-                                  handleContentEdit(
-                                    'evaluationCriteria',
-                                    (currentDocument as any).evaluation_criteria ||
-                                      '• Claridad en la presentación de conceptos\n• Coherencia en la argumentación\n• Uso adecuado de terminología técnica\n• Aplicación práctica de los contenidos',
-                                  )
+                              ? () => handleContentEdit('eval_criteria', (currentDocument as any).eval_criteria)
                               : undefined
                           }
                           title={!isReadOnly ? 'Clic para editar' : ''}
                         >
                           {hasContent ? (
-                            '• Claridad en la presentación de conceptos\n• Coherencia en la argumentación\n• Uso adecuado de terminología técnica\n• Aplicación práctica de los contenidos'
+                            (currentDocument as any).eval_criteria
                           ) : (
                             <p className="text-[#47566C]/60 italic">Generando contenido con IA...</p>
                           )}
@@ -835,13 +831,13 @@ export function Document() {
                                         const classItem = classPlan.find(
                                           (item: any) => item.class_number === c.class_number,
                                         );
-                                        return classItem?.learning_objective || '';
+                                        return classItem?.objective || '';
                                       })(),
                                     })
                                   }
                                   title="Clic para editar"
                                 >
-                                  {/* Show the actual learning_objective value from the current document state */}
+                                  {/* Show the actual objectives value from the current document state */}
                                   {(() => {
                                     const subjectsData = (currentDocument as any).subjects_data || {};
                                     const subjectData = subjectsData[c.subject_id] || {};
@@ -849,7 +845,7 @@ export function Document() {
                                     const classItem = classPlan.find(
                                       (item: any) => item.class_number === c.class_number,
                                     );
-                                    return classItem?.learning_objective || '...';
+                                    return classItem?.objective || '...';
                                   })()}
                                 </div>
                               )}
