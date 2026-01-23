@@ -25,6 +25,8 @@ export function Document() {
   } = useStore();
 
   const [isChatGenerating, setIsChatGenerating] = useState(false);
+  const [isGeneratingClasses, setIsGeneratingClasses] = useState(false);
+  const [visibleClasses, setVisibleClasses] = useState<Set<string>>(new Set());
   const [editingContent, setEditingContent] = useState<{
     strategy?: string;
     title?: string;
@@ -125,16 +127,68 @@ export function Document() {
     if (!currentDocument) return;
 
     setIsGenerating(true);
+    setVisibleClasses(new Set());
+
     try {
-      await api.documents.generate(docId);
-      // Reload the full document to get all generated content including class plans
-      const updatedDoc = await api.documents.getById(docId);
-      setCurrentDocument(updatedDoc);
+      // Step 1: Generate strategy, problem_edge, eval_criteria
+      await api.documents.generate(docId, {
+        generate_strategy: true,
+        generate_class_plans: false,
+      });
+
+      // Reload document to show the generated content immediately
+      const docWithStrategy = await api.documents.getById(docId);
+      setCurrentDocument(docWithStrategy);
+      setIsGenerating(false);
+
+      // Step 2: Generate class plans (show loader in classes section)
+      setIsGeneratingClasses(true);
+      await api.documents.generate(docId, {
+        generate_strategy: false,
+        generate_class_plans: true,
+      });
+
+      // Reload document with class plans
+      const finalDoc = await api.documents.getById(docId);
+      setCurrentDocument(finalDoc);
+
+      // Animate classes appearing one by one - build list in same order as render
+      const finalSubjectsData = finalDoc.subjects_data || {};
+      const finalSubjects = finalDoc.subjects || [];
+      const allClassesForAnimation: { class_number: number; subject_id: number; subject_name: string }[] = [];
+
+      finalSubjects.forEach((s: any) => {
+        const sData = finalSubjectsData[s.id] || {};
+        const classPlan = sData.class_plan || [];
+        classPlan.forEach((c: any) => {
+          allClassesForAnimation.push({
+            class_number: c.class_number,
+            subject_id: s.id,
+            subject_name: s.name,
+          });
+        });
+      });
+
+      // Sort in same order as render: by class_number, then by subject_name
+      allClassesForAnimation.sort((a, b) => {
+        if (a.class_number !== b.class_number) {
+          return a.class_number - b.class_number;
+        }
+        return a.subject_name.localeCompare(b.subject_name);
+      });
+
+      // Stagger the appearance of each class
+      allClassesForAnimation.forEach((c, index) => {
+        setTimeout(() => {
+          setVisibleClasses((prev) => new Set([...prev, `${c.class_number}-${c.subject_id}`]));
+        }, index * 150); // 150ms delay between each class
+      });
     } catch (error) {
       console.error('Error generating content:', error);
       alert('Error al generar contenido con IA');
     } finally {
       setIsGenerating(false);
+      setIsGeneratingClasses(false);
     }
   };
 
@@ -669,6 +723,13 @@ export function Document() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {isGeneratingClasses ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                  <p className="body-2-regular text-[#47566C]">Generando clases con IA...</p>
+                </div>
+              ) : (
+              <>
               {(() => {
                 // Collect all classes from all subjects separately
                 const allClasses: any[] = [];
@@ -774,10 +835,15 @@ export function Document() {
                           return classItem?.objective || '...';
                         };
 
+                        const classKey = `${c.class_number}-${c.subject_id}`;
+                        const isVisible = visibleClasses.size === 0 || visibleClasses.has(classKey);
+
                         return (
                           <div
                             key={`${c.class_number}-${c.subject_id}-${idx}`}
-                            className="bg-[#F3F0FF] rounded-2xl p-4"
+                            className={`bg-[#F3F0FF] rounded-2xl p-4 transition-all duration-500 ease-out ${
+                              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                            }`}
                           >
                             {/* Title */}
                             {editingClassTitle &&
@@ -908,6 +974,8 @@ export function Document() {
 
               {subjects.length === 0 && (
                 <p className="body-2-regular text-[#47566C] text-center">No hay materias configuradas</p>
+              )}
+              </>
               )}
             </div>
           </div>

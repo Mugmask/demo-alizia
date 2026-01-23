@@ -6,6 +6,7 @@ import { TabsCustom, TabsCustomContent, TabsCustomList, TabsCustomTrigger } from
 import { StudentsList } from '@/components/ui/StudentsList';
 import { CourseInfo } from '@/components/ui/CourseInfo';
 import { DocumentSectionsList, type DocumentSection } from '@/components/ui/DocumentSectionsList';
+import { ScheduleGridModal } from '@/components/ui/ScheduleGridModal';
 import { api } from '@/services/api';
 
 interface Student {
@@ -24,6 +25,7 @@ export function Course() {
   const [students, setStudents] = useState<Student[]>([]);
   const [documentSections, setDocumentSections] = useState<DocumentSection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   const course = courses.find((c) => c.id === courseId);
   const userArea = getUserArea;
@@ -162,6 +164,7 @@ export function Course() {
                 { label: 'CICLO LECTIVO', value: '2026' },
               ]}
               showSchedule={true}
+              onScheduleClick={() => setIsScheduleModalOpen(true)}
             />
           </div>
         </TabsCustomContent>
@@ -177,6 +180,12 @@ export function Course() {
           />
         </TabsCustomContent>
       </TabsCustom>
+
+      <ScheduleGridModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        course={course}
+      />
     </div>
   );
 }

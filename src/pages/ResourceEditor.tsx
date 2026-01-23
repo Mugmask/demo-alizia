@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, X, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -28,6 +28,7 @@ export function ResourceEditor() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState('');
+  const isCreatingRef = useRef(false);
 
   const isNewResource = id === undefined && type !== undefined;
   const resourceId = id ? parseInt(id) : null;
@@ -45,7 +46,8 @@ export function ResourceEditor() {
   }, [resourceId, type, currentUser]);
 
   const createNewResource = async () => {
-    if (!currentUser || !type) return;
+    if (!currentUser || !type || isCreatingRef.current) return;
+    isCreatingRef.current = true;
 
     setIsLoading(true);
     try {
