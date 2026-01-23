@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, X, Share } from 'lucide-react';
+import { ChevronLeft, X, Share, CloudCheck } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChatBot } from '@/components/ui/ChatBot';
-import { api } from '@/services/api';
+import { api, postData } from '@/services/api';
 import type { ChatMessage } from '@/types';
 
 export function TeacherLessonPlan() {
@@ -65,7 +65,7 @@ export function TeacherLessonPlan() {
       const momentTypes = ['apertura', 'desarrollo', 'cierre'];
 
       for (const momentType of momentTypes) {
-        await api.chat.sendMessage(`/teacher-lesson-plans/${planId}/generate-moment`, {
+        await postData(`/teacher-lesson-plans/${planId}/generate-moment`, {
           moment_type: momentType,
         });
       }
@@ -169,14 +169,19 @@ export function TeacherLessonPlan() {
   return (
     <div className="h-screen flex flex-col gradient-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50">
-        <button
-          onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
-          className="cursor-pointer hover:opacity-70"
-        >
-          <ChevronLeft className="w-6 h-6 text-[#10182B]" />
-        </button>
-        <h1 className="title-2-bold text-[#10182B]">Planificación de clase</h1>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#DAD5F6] bg-[#FFFFFF26] backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
+            className="cursor-pointer hover:opacity-70"
+          >
+            <ChevronLeft className="w-6 h-6 text-[#324155]" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <h1 className="header-title text-[#10182B]">Planificación de clase</h1>
+          <CloudCheck className="w-5 h-5 text-[#324155]" />
+        </div>
         <div className="flex items-center gap-3">
           <Button
             onClick={() => {}}
@@ -189,7 +194,7 @@ export function TeacherLessonPlan() {
             onClick={() => navigate(`/teacher/cs/${currentLessonPlan.course_subject_id}`)}
             className="cursor-pointer hover:opacity-70"
           >
-            <X className="w-6 h-6 text-[#10182B]" />
+            <X className="w-6 h-6 text-[#324155]" />
           </button>
         </div>
       </div>
@@ -211,92 +216,83 @@ export function TeacherLessonPlan() {
 
         {/* Center - AI Generated Content */}
         <div className="flex-1 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
-          <div className="h-px bg-gray-200/50" />
-          <div className="flex-1 overflow-y-auto space-y-6">
-            {/* Momentos de la clase */}
-            <div>
-              <div className="p-4 px-6 border-b border-muted flex flex-row items-center justify-between">
-                <h3 className="headline-1-bold text-[#10182B]">Momentos de la clase</h3>
-              </div>
-              <div className="space-y-4 p-4">
-                {momentTypes.map((mt) => {
-                  const activityNames = getActivityNames(mt.key);
-                  const moments = currentLessonPlan.moments as any;
-                  const generatedContent = moments?.[mt.key]?.generatedContent || '';
+          {/* Header fijo */}
+          <div className="p-4 px-6 border-b border-[#DAD5F6] flex flex-row items-center justify-between h-14">
+            <h3 className="headline-1-bold text-[#10182B]">Momentos de la clase</h3>
+          </div>
+          {/* Contenido con scroll */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-4">
+              {momentTypes.map((mt) => {
+                const activityNames = getActivityNames(mt.key);
+                const moments = currentLessonPlan.moments as any;
+                const generatedContent = moments?.[mt.key]?.generatedContent || '';
 
-                  return (
-                    <div key={mt.key} className="activity-card-bg rounded-2xl p-4 space-y-3">
-                      <h4 className="body-1-medium text-secondary-foreground">{mt.name}</h4>
-                      {activityNames.length > 0 && (
-                        <div>
-                          <p className="body-2-medium text-[#10182B] mb-2">Actividades:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {activityNames.map((name: string, idx: number) => (
-                              <Badge key={idx} variant="secondary" className="text-xs fill-primary">
-                                {name}
-                              </Badge>
-                            ))}
-                          </div>
+                return (
+                  <div key={mt.key} className="space-y-3">
+                    <h4 className="section-title text-[#10182B]">{mt.name}</h4>
+                    {activityNames.length > 0 && (
+                      <div>
+                        <p className="body-2-medium text-[#10182B] mb-2">Actividades:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {activityNames.map((name: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" className="text-xs fill-primary">
+                              {name}
+                            </Badge>
+                          ))}
                         </div>
-                      )}
-                      {generatedContent ? (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="body-2-medium text-[#10182B] mb-2">Contenido generado:</p>
-                            <button
-                              onClick={() => handleContentEdit(mt.key, generatedContent)}
-                              className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
-                            >
-                              Editar
-                            </button>
-                          </div>
-                          {editingContent[mt.key] !== undefined ? (
-                            <div className="space-y-2">
-                              <textarea
-                                value={editingContent[mt.key]}
-                                onChange={(e) => handleContentEdit(mt.key, e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-lg text-sm text-[#47566C] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows={8}
-                                placeholder="Editá el contenido generado..."
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleSaveContent(mt.key)}
-                                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 cursor-pointer"
-                                >
-                                  Guardar
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingContent((prev) => {
-                                      const newState = { ...prev };
-                                      delete newState[mt.key];
-                                      return newState;
-                                    });
-                                  }}
-                                  className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 cursor-pointer"
-                                >
-                                  Cancelar
-                                </button>
-                              </div>
+                      </div>
+                    )}
+                    {generatedContent ? (
+                      <div>
+                        {editingContent[mt.key] !== undefined ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingContent[mt.key]}
+                              onChange={(e) => handleContentEdit(mt.key, e.target.value)}
+                              className="w-full p-3 border border-gray-300 rounded-lg section-description text-[#324155] leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              rows={8}
+                              placeholder="Editá el contenido generado..."
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSaveContent(mt.key)}
+                                className="px-3 py-1 bg-primary text-white text-sm rounded hover:bg-primary/90 cursor-pointer"
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingContent((prev) => {
+                                    const newState = { ...prev };
+                                    delete newState[mt.key];
+                                    return newState;
+                                  });
+                                }}
+                                className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 cursor-pointer"
+                              >
+                                Cancelar
+                              </button>
                             </div>
-                          ) : (
-                            <p
-                              className="body-2-regular text-[#47566C] leading-relaxed whitespace-pre-wrap cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
-                              onClick={() => handleContentEdit(mt.key, generatedContent)}
-                              title="Clic para editar"
-                            >
-                              {generatedContent}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="body-2-regular text-[#47566C]/60 italic">Generando contenido con IA...</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="section-description text-[#324155] leading-relaxed whitespace-pre-wrap cursor-pointer hover:bg-[#F5F3FF] p-2 rounded transition-colors"
+                            onClick={() => handleContentEdit(mt.key, generatedContent)}
+                            title="Clic para editar"
+                          >
+                            {generatedContent}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="body-2-regular text-[#47566C]/60 italic">Generando contenido con IA...</p>
+                    )}
+                    {/* Separador entre secciones */}
+                    {mt.key !== 'cierre' && <div className="border-t border-[#DAD5F6] my-6"></div>}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
