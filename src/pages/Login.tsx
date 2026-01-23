@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { AnimatedOrb } from '@/components/ui/AnimatedOrb';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 import { api } from '@/services/api';
 import type { User, Area, CourseSubject } from '@/types';
-import { BookOpenText, Building } from 'lucide-react';
+import { GraduationCap, Users } from 'lucide-react';
 
 export function Login() {
   const navigate = useNavigate();
@@ -62,199 +62,183 @@ export function Login() {
     }
   };
 
-  const getOrbColor = (index: number) => {
-    const colors = [
-      'from-violet-400 to-purple-600',
-      'from-blue-400 to-cyan-600',
-      'from-emerald-400 to-teal-600',
-      'from-amber-400 to-orange-600',
-      'from-pink-400 to-rose-600',
-      'from-indigo-400 to-blue-600',
+  const getAvatarGradient = (index: number) => {
+    const gradients = [
+      'from-[#735FE3] to-[#9B8AE8]',
+      'from-[#10B981] to-[#34D399]',
+      'from-[#F59E0B] to-[#FBBF24]',
+      'from-[#EC4899] to-[#F472B6]',
+      'from-[#3B82F6] to-[#60A5FA]',
+      'from-[#8B5CF6] to-[#A78BFA]',
     ];
-    return colors[index % colors.length];
+    return gradients[index % gradients.length];
   };
 
+  const UserCard = ({ user, index }: { user: User; index: number }) => (
+    <div
+      className="group cursor-pointer"
+      onClick={() => handleSelectUser(user.id)}
+      style={{
+        animation: 'fadeInUp 0.5s ease-out forwards',
+        animationDelay: `${index * 0.1}s`,
+        opacity: 0,
+      }}
+    >
+      <div className="relative rounded-2xl p-4 border transition-all duration-300 group-hover:scale-[1.02] overflow-hidden border-[#DAD5F6] group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/10 bg-linear-to-br from-white to-primary/5">
+        {/* Shimmer effect on hover */}
+        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+
+        <div className="flex items-center gap-3 relative z-10">
+          {/* Avatar with glow */}
+          <div className="relative shrink-0">
+            <div
+              className={`absolute inset-0 rounded-full bg-linear-to-br ${getAvatarGradient(index)} blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300`}
+            />
+            <div
+              className={`relative w-12 h-12 rounded-full bg-linear-to-br ${getAvatarGradient(index)} flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300`}
+            >
+              <span className="text-lg font-bold text-white drop-shadow-sm">{user.name.charAt(0)}</span>
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <p className="body-2-medium text-[#10182B] truncate group-hover:text-primary transition-colors">
+              {user.name}
+            </p>
+            <p className="text-xs text-[#47566C] truncate">{getUserRoleLabel(user.id)}</p>
+          </div>
+
+          {/* Arrow indicator */}
+          <div className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:bg-primary/10 shrink-0">
+            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="h-screen gradient-background flex flex-col items-center justify-center p-6 overflow-hidden relative">
+        <div className="flex flex-col items-center gap-4">
+          <AnimatedOrb size="md" />
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col items-center justify-center p-6">
-      {/* Background gradients */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl animate-pulse" />
-        <div
-          className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-br from-accent/10 to-transparent rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '1s' }}
-        />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-primary/5 to-accent/5 rounded-full blur-3xl" />
+    <div className="h-screen gradient-background flex flex-col items-center justify-center p-6 overflow-hidden relative">
+      {/* Floating particles background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 rounded-full bg-primary/20"
+            style={{
+              left: `${15 + i * 15}%`,
+              top: `${20 + (i % 3) * 25}%`,
+              animation: `float ${3 + i * 0.5}s ease-in-out infinite`,
+              animationDelay: `${i * 0.3}s`,
+            }}
+          />
+        ))}
       </div>
 
-      <div className="w-full relative z-10 flex flex-col items-center">
-        {/* Header with orb */}
-        <div className="flex flex-col items-center mb-8">
-          <AnimatedOrb size="md" className="mb-6" />
-          <h1 className="large-title-2-bold text-primary mb-2 text-center">Bienvenido a Alizia</h1>
-          <p className="body-1-regular text-muted-foreground text-center">Selecciona tu perfil para comenzar</p>
+      {/* Central Card Container */}
+      <div className="w-full max-w-5xl flex flex-col relative z-10">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-4 relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full bg-primary/10 blur-2xl animate-pulse" />
+            </div>
+            <div className="flex flex-col items-center">
+              <AnimatedOrb size="md" className="mb-4" />
+              <h2 className="title-1-regular text-primary">Bienvenido a Alizia</h2>
+              <h3 className="title-2-regular text-muted-foreground">Selecciona tu perfil para comenzar</h3>
+            </div>
+          </div>
         </div>
 
-        <div className="w-full max-w-7xl">
-          {/* Coordinators Section */}
-          {isLoading ? (
-            <div className="mb-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Building className="w-4 h-4 text-primary" />
+        {/* Main Content Card */}
+        <div className="relative">
+          {/* Card glow effect */}
+          <div className="absolute -inset-1 bg-linear-to-r from-primary/20 via-primary/10 to-primary/20 rounded-3xl blur-xl opacity-50" />
+
+          <div className="relative activity-card-bg rounded-3xl border border-[#DAD5F6] overflow-hidden shadow-xl backdrop-blur-sm">
+            <div className="flex flex-col md:flex-row">
+              {/* Coordinators Section */}
+              <div className="flex-1 p-5 relative">
+                {/* Section gradient overlay */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                <div className="flex flex-col items-center gap-2 mb-4 relative">
+                  <div className="w-9 h-9 rounded-xl bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-sm">
+                    <Users className="w-4 h-4 text-primary" />
                   </div>
-                  <h2 className="headline-1-bold text-primary">Coordinadores</h2>
+                  <div className="text-center">
+                    <h2 className="body-1-medium text-[#10182B]">Coordinadores</h2>
+                    <p className="text-xs text-[#47566C]">Gestiona áreas y docentes</p>
+                  </div>
                 </div>
-                <div className="flex-1 h-px bg-gradient-to-r from-primary/30 via-transparent to-transparent" />
+
+                <div className="grid grid-cols-1 gap-3 relative">
+                  {coordinators.length > 0 ? (
+                    coordinators.map((user, index) => <UserCard key={user.id} user={user} index={index} />)
+                  ) : (
+                    <p className="text-xs text-[#47566C]/60 italic text-center py-4">
+                      No hay coordinadores disponibles
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap justify-center gap-6">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    <div className="relative flex items-center justify-center mb-3">
-                      <Skeleton className="w-24 h-24 rounded-full" />
-                    </div>
-                    <div className="text-center w-28 space-y-2">
-                      <Skeleton className="h-4 w-20 mx-auto" />
-                      <Skeleton className="h-3 w-24 mx-auto" />
-                    </div>
+              {/* Divider */}
+              <div className="hidden md:flex items-center py-6">
+                <div className="w-px h-[90%] bg-[#DAD5F6]" />
+              </div>
+              <div className="md:hidden px-5">
+                <div className="h-px w-full bg-[#DAD5F6]" />
+              </div>
+
+              {/* Teachers Section */}
+              <div className="flex-1 p-5 relative">
+                {/* Section gradient overlay */}
+                <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/2" />
+
+                <div className="flex flex-col items-center gap-2 mb-4 relative">
+                  <div className="w-9 h-9 rounded-xl bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-sm">
+                    <GraduationCap className="w-4 h-4 text-primary" />
                   </div>
-                ))}
+                  <div className="text-center">
+                    <h2 className="body-1-medium text-[#10182B]">Docentes</h2>
+                    <p className="text-xs text-[#47566C]">Planifica y gestiona tus clases</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 relative">
+                  {teachers.length > 0 ? (
+                    teachers.map((user, index) => (
+                      <UserCard key={user.id} user={user} index={coordinators.length + index} />
+                    ))
+                  ) : (
+                    <p className="text-xs text-[#47566C]/60 italic text-center py-4">No hay docentes disponibles</p>
+                  )}
+                </div>
               </div>
             </div>
-          ) : coordinators.length > 0 ? (
-            <div className="mb-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Building className="w-4 h-4 text-primary" />
-                  </div>
-                  <h2 className="headline-1-bold text-primary">Coordinadores</h2>
-                </div>
-                <div className="flex-1 h-px bg-gradient-to-r from-primary/30 via-transparent to-transparent" />
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-6">
-                {coordinators.map((user, index) => (
-                  <div
-                    key={user.id}
-                    className="group cursor-pointer flex flex-col items-center"
-                    onClick={() => handleSelectUser(user.id)}
-                    style={{
-                      animation: 'fadeInUp 0.5s ease-out forwards',
-                      animationDelay: `${index * 0.08}s`,
-                      opacity: 0,
-                    }}
-                  >
-                    <div className="relative flex items-center justify-center">
-                      {/* Subtle glow effect */}
-                      <div
-                        className={`absolute w-32 h-32 bg-gradient-to-br ${getOrbColor(index)} rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300`}
-                      />
-
-                      {/* User orb */}
-                      <div
-                        className={`relative w-24 h-24 rounded-full bg-gradient-to-br ${getOrbColor(index)} flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 border-2 border-white/20`}
-                      >
-                        <span className="text-4xl font-bold text-white drop-shadow-lg">{user.name.charAt(0)}</span>
-                      </div>
-                    </div>
-
-                    {/* User info */}
-                    <div className="mt-3 text-center w-28">
-                      <p className="body-2-medium mb-0.5 truncate">{user.name}</p>
-                      <p className="callout-regular text-muted-foreground text-xs line-clamp-1">
-                        {getUserRoleLabel(user.id)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Teachers Section */}
-          {isLoading ? (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                    <BookOpenText className="w-4 h-4 text-accent" />
-                  </div>
-                  <h2 className="headline-1-bold text-accent">Docentes</h2>
-                </div>
-                <div className="flex-1 h-px bg-gradient-to-r from-accent/30 via-transparent to-transparent" />
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-6">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    <div className="relative flex items-center justify-center mb-3">
-                      <Skeleton className="w-24 h-24 rounded-full" />
-                    </div>
-                    <div className="text-center w-28 space-y-2">
-                      <Skeleton className="h-4 w-20 mx-auto" />
-                      <Skeleton className="h-3 w-24 mx-auto" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : teachers.length > 0 ? (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                    <BookOpenText className="w-4 h-4 text-accent" />
-                  </div>
-                  <h2 className="headline-1-bold text-accent">Docentes</h2>
-                </div>
-                <div className="flex-1 h-px bg-gradient-to-r from-accent/30 via-transparent to-transparent" />
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-6">
-                {teachers.map((user, index) => (
-                  <div
-                    key={user.id}
-                    className="group cursor-pointer flex flex-col items-center"
-                    onClick={() => handleSelectUser(user.id)}
-                    style={{
-                      animation: 'fadeInUp 0.5s ease-out forwards',
-                      animationDelay: `${(coordinators.length + index) * 0.08}s`,
-                      opacity: 0,
-                    }}
-                  >
-                    <div className="relative flex items-center justify-center">
-                      {/* Subtle glow effect */}
-                      <div
-                        className={`absolute w-32 h-32 bg-gradient-to-br ${getOrbColor(coordinators.length + index)} rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300`}
-                      />
-
-                      {/* User orb */}
-                      <div
-                        className={`relative w-24 h-24 rounded-full bg-gradient-to-br ${getOrbColor(coordinators.length + index)} flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 border-2 border-white/20`}
-                      >
-                        <span className="text-4xl font-bold text-white drop-shadow-lg">{user.name.charAt(0)}</span>
-                      </div>
-                    </div>
-
-                    {/* User info */}
-                    <div className="mt-3 text-center w-28">
-                      <p className="body-2-medium mb-0.5 truncate">{user.name}</p>
-                      <p className="callout-regular text-muted-foreground text-xs line-clamp-1">
-                        {getUserRoleLabel(user.id)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-[#47566C]/60 mt-4">
+          Alizia - Asistente de planificación educativa con IA
+        </p>
       </div>
 
       <style>{`
@@ -266,6 +250,17 @@ export function Login() {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0) scale(1);
+            opacity: 0.3;
+          }
+          50% {
+            transform: translateY(-20px) scale(1.2);
+            opacity: 0.6;
           }
         }
       `}</style>
