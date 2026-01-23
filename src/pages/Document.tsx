@@ -247,7 +247,7 @@ export function Document() {
   return (
     <div className="h-screen flex flex-col gradient-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-muted bg-[#FFFFFF26] backdrop-blur-sm">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#DAD5F6] bg-[#FFFFFF26] backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/')} className="cursor-pointer hover:opacity-70">
             <ChevronLeft className="w-6 h-6 text-[#324155]" />
@@ -425,7 +425,7 @@ export function Document() {
                 </div>
 
                 {/* Separator */}
-                <div className="border-t border-gray-200 my-6"></div>
+                <div className="border-t border-[#DAD5F6] my-6"></div>
 
                 {/* Estrategia Metodológica Section */}
                 <div className="space-y-4">
@@ -541,7 +541,7 @@ export function Document() {
                 </div>
 
                 {/* Separator */}
-                <div className="border-t border-gray-200 my-6"></div>
+                <div className="border-t border-[#DAD5F6] my-6"></div>
 
                 {/* Criterios de Evaluación Section */}
                 <div className="space-y-4">
@@ -644,7 +644,7 @@ export function Document() {
         {/* Right Sidebar - Classes by Discipline */}
         {!isClassesCollapsed && (
           <div className="w-80 flex flex-col activity-card-bg rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-muted flex items-center justify-between h-14">
+            <div className="p-4 border-b border-[#DAD5F6] flex items-center justify-between h-14">
               <h3 className="headline-1-bold text-[#10182B]">Clases por disciplinas</h3>
               <button
                 onClick={() => setIsClassesCollapsed(true)}
@@ -739,8 +739,11 @@ export function Document() {
                   groupedByWeek[weekKey].push(c);
                 });
 
-                return Object.entries(groupedByWeek).map(([weekLabel, classes]) => (
-                  <div key={weekLabel} className="space-y-3">
+                return Object.entries(groupedByWeek).map(([weekLabel, classes], weekIndex) => (
+                  <div
+                    key={weekLabel}
+                    className={`space-y-3 ${weekIndex > 0 ? 'border-t border-[#DAD5F6] pt-6' : ''}`}
+                  >
                     <h4 className="body-2-medium text-[#47566C] text-sm">{weekLabel}</h4>
                     <div className="space-y-2">
                       {classes.map((c, idx: number) => {
